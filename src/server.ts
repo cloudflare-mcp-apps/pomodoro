@@ -28,6 +28,10 @@ import {
   GetTodayStatusInput,
   GetSessionHistoryInput, type GetSessionHistoryParams,
 } from "./schemas/inputs";
+import {
+  StartPomodoroOutput, CompletePomodoroOutput, LogDistractionOutput,
+  GetTodayStatusOutput, GetSessionHistoryOutput,
+} from "./schemas/outputs";
 
 import {
   startSession, completeSession, logDistraction,
@@ -150,6 +154,7 @@ export function createServer(env: Env): McpServer {
       title: TOOL_METADATA.start_pomodoro.title,
       description: getToolDescription("start_pomodoro"),
       inputSchema: StartPomodoroInput,
+      outputSchema: StartPomodoroOutput,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       _meta: { ui: { resourceUri: widgetResource.uri } },
     },
@@ -176,6 +181,7 @@ export function createServer(env: Env): McpServer {
       title: TOOL_METADATA.complete_pomodoro.title,
       description: getToolDescription("complete_pomodoro"),
       inputSchema: CompletePomodoroInput,
+      outputSchema: CompletePomodoroOutput,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       _meta: { ui: { resourceUri: widgetResource.uri } },
     },
@@ -202,6 +208,7 @@ export function createServer(env: Env): McpServer {
       title: TOOL_METADATA.log_distraction.title,
       description: getToolDescription("log_distraction"),
       inputSchema: LogDistractionInput,
+      outputSchema: LogDistractionOutput,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       _meta: { ui: { resourceUri: widgetResource.uri } },
     },
@@ -222,6 +229,7 @@ export function createServer(env: Env): McpServer {
       title: TOOL_METADATA.get_today_status.title,
       description: getToolDescription("get_today_status"),
       inputSchema: GetTodayStatusInput,
+      outputSchema: GetTodayStatusOutput,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       _meta: { ui: { resourceUri: widgetResource.uri } },
     },
@@ -244,6 +252,7 @@ export function createServer(env: Env): McpServer {
       title: TOOL_METADATA.get_session_history.title,
       description: getToolDescription("get_session_history"),
       inputSchema: GetSessionHistoryInput,
+      outputSchema: GetSessionHistoryOutput,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       _meta: { ui: { resourceUri: widgetResource.uri } },
     },
