@@ -1,0 +1,60 @@
+{
+  "name": "pomodoro",
+  "version": "1.0.0",
+  "description": "Pomodoro Focus — focused-work tracking with per-user sessions, distraction inventory, and LLM-coached daily reflection",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cloudflare-mcp-apps/pomodoro.git"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "cloudflare-workers",
+    "mcp-apps",
+    "sep-1865"
+  ],
+  "scripts": {
+    "dev": "wrangler dev",
+    "dev:widget": "cross-env INPUT=widgets/widget.html vite build --watch",
+    "dev:full": "concurrently \"npm run dev\" \"npm run dev:widget\"",
+    "build:widget": "cross-env INPUT=widgets/widget.html vite build",
+    "build:widgets": "npm run build:widget",
+    "watch": "cross-env INPUT=widgets/widget.html vite build --watch",
+    "watch:widgets": "npm run watch",
+    "deploy": "npm run build:widgets && wrangler deploy",
+    "type-check": "tsc --noEmit",
+    "pre-commit": "npm run type-check && npm run build:widgets",
+    "verify-all": "npm run pre-commit",
+    "verify-deploy": "npm ci && npx wrangler deploy --dry-run --outdir /tmp/wrangler-dry-run",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.7.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "agents": "^0.11.5",
+    "clsx": "^2.1.1",
+    "jose": "^6.1.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tailwind-merge": "^3.4.0",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250101.0",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.2.1",
+    "cross-env": "^7.0.3",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.9.3",
+    "vite": "^6.0.6",
+    "vite-plugin-singlefile": "^2.3.0",
+    "wrangler": "^4.45.3"
+  }
+}

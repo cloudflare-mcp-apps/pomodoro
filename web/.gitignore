@@ -1,0 +1,6 @@
+# Built widget output (regenerated during build/deploy)
+dist/
+
+# Keep the dist directory structure
+!dist/.gitkeep
+!dist/**/.gitkeep

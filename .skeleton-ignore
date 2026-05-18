@@ -1,0 +1,7 @@
+# Files/directories to exclude when copying skeleton to new project
+node_modules/
+.wrangler/
+.dev.vars
+*.log
+.DS_Store
+SKELETON_UPDATE_REPORT.md

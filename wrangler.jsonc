@@ -1,0 +1,125 @@
+/**
+ * Cloudflare Workers Configuration for Pomodoro Focus MCP Server
+ *
+ * Architecture: Resource Server with JWT verification (AuthKit) + API key auth (D1)
+ * - AuthKit handles OAuth 2.1 flows (authorization, tokens, PKCE, DCR)
+ * - This worker verifies JWTs via JWKS and serves MCP protocol
+ * - D1 database for user lookup and API key validation
+ *
+ * CUSTOMIZATION CHECKLIST:
+ * ========================
+ * REQUIRED CHANGES (search for {{PLACEHOLDERS}}):
+ *   1. "name": Change pomodoro to your server's kebab-case name (e.g., "weather-mcp")
+ *   2. "routes.pattern": Change pomodoro to your subdomain (e.g., "weather.wtyczki.ai")
+ *
+ * SHARED INFRASTRUCTURE (DO NOT CHANGE):
+ *   - D1 database ID (mcp-oauth)
+ *   - AUTHKIT_DOMAIN
+ *
+ * OPTIONAL ADDITIONS:
+ *   - Uncomment AI binding if you need Workers AI
+ *   - Uncomment R2 binding if you need file storage
+ *   - Uncomment Browser binding if you need browser rendering
+ *
+ * For more details on Wrangler configuration:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pomodoro",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-03-10",
+  "compatibility_flags": ["nodejs_compat"],
+
+  /**
+   * Build command for GitHub -> Cloudflare deployment
+   * Builds widgets BEFORE TypeScript compilation
+   */
+  "build": {
+    "command": "npm install && npm run build:widgets && npx tsc --noEmit"
+  },
+
+  /**
+   * Assets binding for MCP Apps widget delivery
+   */
+  "assets": {
+    "directory": "./web/dist/widgets",
+    "binding": "ASSETS"
+  },
+
+  /**
+   * D1 Database - Shared mcp-oauth database
+   * Contains: users, api_keys tables
+   * Same database as panel.wtyczki.ai for centralized auth
+   */
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "mcp-oauth",
+      "database_id": "eac93639-d58e-4777-82e9-f1e28113d5b2"
+    }
+  ],
+
+  /**
+   * OPTIONAL: Workers AI binding for AI models
+   * Uncomment if you need to use Workers AI:
+   */
+  // "ai": {
+  //   "binding": "AI"
+  // },
+
+  /**
+   * OPTIONAL: R2 bucket binding for file storage
+   * Uncomment and configure if you need R2:
+   */
+  // "r2_buckets": [
+  //   {
+  //     "binding": "MY_BUCKET",
+  //     "bucket_name": "your-bucket-name"
+  //   }
+  // ],
+
+  /**
+   * OPTIONAL: Browser Rendering binding for headless browser
+   * Uncomment if you need to render pages (e.g., screenshots, web scraping):
+   */
+  // "browser": {
+  //   "binding": "BROWSER"
+  // },
+
+  /**
+   * Environment variables
+   */
+  "vars": {
+    "AUTHKIT_DOMAIN": "exciting-domain-65.authkit.app"
+  },
+
+  /**
+   * REQUIRED: Custom Domain for production deployment
+   */
+  "routes": [
+    {
+      "pattern": "pomodoro.wtyczki.ai",
+      "custom_domain": true
+    }
+  ],
+
+  /**
+   * SECURITY: Disable workers.dev subdomain (RECOMMENDED)
+   */
+  "workers_dev": false,
+
+  /**
+   * RECOMMENDED: Enable observability for debugging
+   */
+  "observability": {
+    "enabled": true
+  },
+
+  /**
+   * OPTIONAL: Local development port
+   */
+  "dev": {
+    "port": 8787
+  }
+}
