@@ -325,8 +325,18 @@ function Widget() {
     };
 
     appInstance.onerror = (err) => {
+      // The host occasionally echoes a widget-initiated tool response twice:
+      // the SDK consumes the first copy to resolve the callServerTool promise,
+      // then surfaces the second copy here as "unknown message ID". The data
+      // flow already completed — treat as non-fatal log, do NOT replace UI
+      // with an error card.
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes("unknown message ID")) {
+        log.warn("Ignoring duplicate response echo:", message);
+        return;
+      }
       log.error("App error:", err);
-      setAppError(err instanceof Error ? err : new Error(String(err)));
+      setAppError(err instanceof Error ? err : new Error(message));
     };
 
     appInstance.onhostcontextchanged = (ctx) => {
