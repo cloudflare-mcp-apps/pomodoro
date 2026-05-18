@@ -318,6 +318,20 @@ function Widget() {
         // If a tool returned a full TodayStatus shape (only get_today_status does), apply directly.
         if ("today_completed" in data && "tasks" in data && "active_session" in data) {
           setStatus(data as unknown as TodayStatus);
+          return;
+        }
+        // Side-effect tools (complete_pomodoro, log_distraction, start_pomodoro
+        // from chat) don't carry the full dashboard payload — but their result
+        // is the signal that server state changed. Trigger a fresh
+        // get_today_status so the widget catches up immediately instead of
+        // waiting for the 30s poll.
+        if ("session_id" in data || "today_completed" in data) {
+          appInstance.callServerTool({ name: "get_today_status", arguments: {} })
+            .then((r) => {
+              const fresh = r.structuredContent as unknown as TodayStatus | undefined;
+              if (fresh) setStatus(fresh);
+            })
+            .catch((e) => log.warn("Background refresh after side-effect failed:", e));
         }
       } catch (e) {
         log.error("Failed to parse tool result", e);

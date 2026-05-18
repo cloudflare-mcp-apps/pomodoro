@@ -175,6 +175,11 @@ export function createServer(env: Env): McpServer {
   );
 
   // ──── complete_pomodoro ──────────────────────────────────────────────────
+  // Intentionally NO `_meta.ui.resourceUri`: this is a side-effect tool, not a
+  // "show me the widget" action. Rendering it would stack a second widget when
+  // the model chains complete → start. The existing widget instance still
+  // receives ontoolresult (host broadcasts every result to the loaded widget)
+  // and refreshes its state via get_today_status.
   server.registerTool(
     "complete_pomodoro",
     {
@@ -183,7 +188,6 @@ export function createServer(env: Env): McpServer {
       inputSchema: CompletePomodoroInput,
       outputSchema: CompletePomodoroOutput,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-      _meta: { ui: { resourceUri: widgetResource.uri } },
     },
     async (rawParams) => {
       const p = rawParams as CompletePomodoroParams;
@@ -202,6 +206,9 @@ export function createServer(env: Env): McpServer {
   );
 
   // ──── log_distraction ────────────────────────────────────────────────────
+  // No `_meta.ui.resourceUri` — same reasoning as complete_pomodoro. Logging a
+  // distraction is text-only confirmation; the existing widget refreshes via
+  // get_today_status (called directly from the widget's modal submit handler).
   server.registerTool(
     "log_distraction",
     {
@@ -210,7 +217,6 @@ export function createServer(env: Env): McpServer {
       inputSchema: LogDistractionInput,
       outputSchema: LogDistractionOutput,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
-      _meta: { ui: { resourceUri: widgetResource.uri } },
     },
     async (rawParams) => {
       const p = rawParams as LogDistractionParams;
@@ -254,7 +260,9 @@ export function createServer(env: Env): McpServer {
       inputSchema: GetSessionHistoryInput,
       outputSchema: GetSessionHistoryOutput,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-      _meta: { ui: { resourceUri: widgetResource.uri } },
+      // No `_meta.ui.resourceUri` — analytical data for the LLM to summarise in
+      // text (or via the daily-reflection prompt). The dashboard widget is for
+      // current state, not history.
     },
     async (rawParams) => {
       const p = rawParams as GetSessionHistoryParams;
