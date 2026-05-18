@@ -58,6 +58,18 @@ Pomodoro Focus turns this conversation into an accountability partner for focuse
 
 - All tool calls require a valid WorkOS AuthKit JWT.
 - User context (userId, email) is forwarded automatically — no per-user credentials needed.
+
+## Language
+
+This server targets Polish-speaking users (wtyczki.ai). **All user-facing assistant responses MUST be written in Polish** unless the user explicitly switches to another language. Tool result \`content[]\` text is already Polish — pass it through verbatim rather than re-translating.
+
+## Example queries (Polish)
+
+- "Zacznij pomodoro na napisanie raportu."
+- "Skończyłem, podsumuj dzień."
+- "Coś mnie rozproszyło — wpisz: dzwoni telefon."
+- "Jak mi idzie dzisiaj?"
+- "Rozbij na pomodora: 'Przygotować prezentację na poniedziałek'."
 `.trim();
 
 export default SERVER_INSTRUCTIONS;

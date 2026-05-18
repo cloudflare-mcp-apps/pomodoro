@@ -96,7 +96,7 @@ function DistractionModal({ open, onClose, onSubmit }: DistractionModalProps) {
     <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10 p-4">
       <Card className="w-full max-w-sm">
         <CardContent className="pt-6 space-y-3">
-          <div className="text-sm font-medium">Log distraction (keep working)</div>
+          <div className="text-sm font-medium">Zapisz rozproszenie (nie przerywaj pracy)</div>
           <div className="flex gap-2">
             <Button
               variant={type === "internal" ? "default" : "outline"}
@@ -104,7 +104,7 @@ function DistractionModal({ open, onClose, onSubmit }: DistractionModalProps) {
               className="h-11 flex-1"
               onClick={() => setType("internal")}
             >
-              Internal
+              Wewnętrzne
             </Button>
             <Button
               variant={type === "external" ? "default" : "outline"}
@@ -112,22 +112,22 @@ function DistractionModal({ open, onClose, onSubmit }: DistractionModalProps) {
               className="h-11 flex-1"
               onClick={() => setType("external")}
             >
-              External
+              Zewnętrzne
             </Button>
           </div>
           <input
             type="text"
             maxLength={200}
-            placeholder="Park the thought (max 200 chars)…"
+            placeholder="Zapisz myśl (max 200 znaków)…"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className="w-full h-11 px-3 rounded border bg-background text-foreground"
             autoFocus
           />
           <div className="flex gap-2 justify-end">
-            <Button variant="ghost" size="sm" className="h-11" onClick={onClose}>Cancel</Button>
+            <Button variant="ghost" size="sm" className="h-11" onClick={onClose}>Anuluj</Button>
             <Button size="sm" className="h-11" disabled={submitting || !description.trim()} onClick={handleSubmit}>
-              {submitting ? "Logging…" : "Log"}
+              {submitting ? "Zapisywanie…" : "Zapisz"}
             </Button>
           </div>
         </CardContent>
@@ -190,8 +190,8 @@ function ActiveSessionView({
   active, totalSeconds, remainingSecs, onStop, onLogDistraction, paused, onTogglePause,
 }: ActiveSessionViewProps) {
   const label = active.session_type === "focus"
-    ? `Focus: ${active.task}`
-    : active.session_type === "short_break" ? "Short break" : "Long break";
+    ? `Skupienie: ${active.task}`
+    : active.session_type === "short_break" ? "Krótka przerwa" : "Długa przerwa";
 
   return (
     <div className="flex flex-col items-center gap-3 py-2">
@@ -201,10 +201,10 @@ function ActiveSessionView({
       </div>
       <div className="flex gap-2">
         <Button size="sm" variant="outline" className="h-11 min-w-11" onClick={onTogglePause}>
-          {paused ? "Resume" : "Pause"}
+          {paused ? "Wznów" : "Pauza"}
         </Button>
         <Button size="sm" variant="outline" className="h-11 min-w-11" onClick={onLogDistraction}>
-          Log distraction
+          Rozproszenie
         </Button>
         <Button size="sm" variant="destructive" className="h-11 min-w-11" onClick={onStop}>
           Stop
@@ -243,7 +243,7 @@ function StartForm({ onStart, tasks }: StartFormProps) {
     <div className="flex flex-col gap-3 py-2">
       <input
         type="text"
-        placeholder="What will you focus on?"
+        placeholder="Na czym chcesz się skupić?"
         value={task}
         onChange={(e) => setTask(e.target.value)}
         maxLength={200}
@@ -272,7 +272,7 @@ function StartForm({ onStart, tasks }: StartFormProps) {
         disabled={starting || !task.trim()}
         onClick={handleStart}
       >
-        {starting ? "Starting…" : `Start ${duration}m pomodoro`}
+        {starting ? "Uruchamianie…" : `Rozpocznij sesję ${duration} min`}
       </Button>
     </div>
   );
@@ -535,7 +535,7 @@ function Widget() {
       <div ref={rootRef} className="h-[500px] flex items-center justify-center p-4" style={safeAreaStyle}>
         <Card className="w-full max-w-sm">
           <CardContent className="pt-6 text-sm text-red-500">
-            Widget error: {appError.message}
+            Błąd widgetu: {appError.message}
           </CardContent>
         </Card>
       </div>
@@ -545,23 +545,24 @@ function Widget() {
   if (!app) {
     return (
       <div ref={rootRef} className="h-[500px] flex items-center justify-center p-4" style={safeAreaStyle}>
-        <div className="text-sm text-muted-foreground">Connecting…</div>
+        <div className="text-sm text-muted-foreground">Łączenie…</div>
       </div>
     );
   }
 
   const showStreak = (status?.current_streak ?? 0) >= 3;
+  const distractionsToday = status?.distractions_today ?? 0;
 
   return (
     <div ref={rootRef} className="relative h-[500px] flex flex-col p-3 gap-3" style={safeAreaStyle}>
       {/* Header */}
       <div className="flex items-center justify-between text-sm">
         <div className="font-medium">
-          Today: {status?.today_completed ?? 0}/{status?.today_target ?? 8} pomodoros
+          Dzisiaj: {status?.today_completed ?? 0}/{status?.today_target ?? 8} pomodoro
           {showStreak && <span className="ml-2">🔥 {status!.current_streak}</span>}
         </div>
         <div className="text-muted-foreground text-xs">
-          {status?.distractions_today ?? 0} distractions today
+          {distractionsToday} {distractionsToday === 1 ? "rozproszenie" : "rozproszeń"} dzisiaj
         </div>
       </div>
 
@@ -587,7 +588,7 @@ function Widget() {
       {/* Task list */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1 px-1">
-          {SERVER_NAME} · tasks
+          {SERVER_NAME} · zadania
         </div>
         {status && status.tasks.length > 0 ? (
           <ul className="space-y-1">
@@ -602,7 +603,7 @@ function Widget() {
           </ul>
         ) : (
           <div className="text-xs text-muted-foreground px-2">
-            No tasks yet — start a pomodoro to create one.
+            Brak zadań — rozpocznij sesję, by stworzyć pierwsze.
           </div>
         )}
       </div>

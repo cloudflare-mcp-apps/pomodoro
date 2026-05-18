@@ -164,7 +164,7 @@ export function createServer(env: Env): McpServer {
             duration_minutes: p.duration_minutes ?? 25,
             session_type: p.session_type ?? "focus",
           }),
-        (r) => `Started: ${r.task} · ${r.duration_minutes}:00 · ${r.today_completed}/${r.today_target} today (streak ${r.current_streak})`,
+        (r) => `Rozpoczęto: ${r.task} · ${r.duration_minutes}:00 · ${r.today_completed}/${r.today_target} dzisiaj (passa ${r.current_streak})`,
       );
     },
   );
@@ -185,11 +185,11 @@ export function createServer(env: Env): McpServer {
         "complete_pomodoro",
         (userId) => completeSession(env, userId, p),
         (r) => {
-          const nextLabel = r.suggested_next === "long_break" ? "long break (15-30m)"
-            : r.suggested_next === "short_break" ? "short break (5m)"
-            : "focus";
-          const milestone = r.streak_milestone ? ` · 🔥 streak ${r.current_streak}!` : "";
-          return `Completed ${r.today_completed}/${r.today_target} today · next: ${nextLabel}${milestone}`;
+          const nextLabel = r.suggested_next === "long_break" ? "długa przerwa (15-30 min)"
+            : r.suggested_next === "short_break" ? "krótka przerwa (5 min)"
+            : "skupienie";
+          const milestone = r.streak_milestone ? ` · 🔥 passa ${r.current_streak}!` : "";
+          return `Ukończono ${r.today_completed}/${r.today_target} dzisiaj · następnie: ${nextLabel}${milestone}`;
         },
       );
     },
@@ -210,7 +210,7 @@ export function createServer(env: Env): McpServer {
       return runTool(
         "log_distraction",
         (userId) => logDistraction(env, userId, p),
-        (r) => `Logged (${r.session_distraction_count} this session). Back to focus.`,
+        (r) => `Zapisano (${r.session_distraction_count} w tej sesji). Wracaj do pracy.`,
       );
     },
   );
@@ -230,9 +230,9 @@ export function createServer(env: Env): McpServer {
         "get_today_status",
         (userId) => getTodayStatus(env, userId),
         (r) => {
-          const active = r.active_session ? ` · active: ${r.active_session.task}` : "";
+          const active = r.active_session ? ` · aktywne: ${r.active_session.task}` : "";
           const streak = r.current_streak >= 3 ? ` · 🔥 ${r.current_streak}` : "";
-          return `${r.today_completed}/${r.today_target} pomodoros today${streak}${active}`;
+          return `${r.today_completed}/${r.today_target} pomodoro dzisiaj${streak}${active}`;
         },
       ),
   );
@@ -254,8 +254,10 @@ export function createServer(env: Env): McpServer {
       return runTool(
         "get_session_history",
         (userId) => getSessionHistory(env, userId, days, includeDistractions),
-        (r) =>
-          `Last ${days} day${days === 1 ? "" : "s"}: ${r.totals.completed_sessions} completed, ${r.totals.abandoned_sessions} abandoned, ${r.totals.distraction_count} distractions across ${r.sessions.length} sessions`,
+        (r) => {
+          const dayLabel = days === 1 ? "dzień" : days < 5 ? "dni" : "dni";
+          return `Ostatnie ${days} ${dayLabel}: ${r.totals.completed_sessions} ukończonych, ${r.totals.abandoned_sessions} przerwanych, ${r.totals.distraction_count} rozproszeń w ${r.sessions.length} sesjach`;
+        },
       );
     },
   );
@@ -269,9 +271,9 @@ export function createServer(env: Env): McpServer {
   server.registerPrompt(
     "daily-reflection",
     {
-      title: "Reflect on today's focus sessions",
+      title: "Refleksja na koniec dnia",
       description:
-        "Generate an end-of-day reflection on today's pomodoros. The user's LLM reads the session list (via get_session_history) and produces: wins shipped, recurring distraction themes, one concrete tweak for tomorrow.",
+        "Wygeneruj podsumowanie dzisiejszych sesji Pomodoro. LLM użytkownika czyta historię sesji (przez get_session_history) i zwraca: co zostało zrobione, powtarzające się rozproszenia, jedną zmianę na jutro.",
       argsSchema: {},
     },
     async () => ({
@@ -281,13 +283,14 @@ export function createServer(env: Env): McpServer {
           content: {
             type: "text" as const,
             text:
-              "Reflect on my Pomodoro sessions from today.\n\n" +
-              "1. Call the `get_session_history` tool with `days=1, include_distractions=true` to load today's data.\n" +
-              "2. Summarise:\n" +
-              "   - **Wins**: what completed sessions actually shipped (use session task labels and notes).\n" +
-              "   - **Distraction themes**: any recurring patterns in the distraction log (internal vs external, common topics).\n" +
-              "   - **One tweak for tomorrow**: a single concrete adjustment (e.g., 'silence Slack notifications during morning focus blocks').\n" +
-              "3. Keep the reflection to ~150 words. Be specific, not generic.",
+              "Podsumuj moje dzisiejsze sesje Pomodoro.\n\n" +
+              "1. Wywołaj narzędzie `get_session_history` z parametrami `days=1, include_distractions=true`, aby załadować dzisiejsze dane.\n" +
+              "2. Przygotuj zwięzłe podsumowanie:\n" +
+              "   - **Sukcesy**: co konkretnie zostało zrobione w ukończonych sesjach (użyj etykiet zadań i notatek).\n" +
+              "   - **Wzorce rozproszeń**: jakie powtarzające się tematy widać w logu rozproszeń (wewnętrzne vs zewnętrzne).\n" +
+              "   - **Jedna zmiana na jutro**: jedna konkretna rzecz do poprawy (np. „wyciszyć Slack rano podczas bloków skupienia\").\n" +
+              "3. Trzymaj się ~150 słów. Bądź konkretny, unikaj ogólników.\n" +
+              "4. Odpowiedz po polsku.",
           },
         },
       ],
@@ -297,9 +300,9 @@ export function createServer(env: Env): McpServer {
   server.registerPrompt(
     "plan-focus-session",
     {
-      title: "Break a task into pomodoros",
+      title: "Rozbij zadanie na pomodora",
       description:
-        "Help the user estimate how many 25-min pomodoros a task needs. Enforces Cirillo's rule (split if > 7, combine if < 1).",
+        "Pomóż użytkownikowi oszacować, ile 25-minutowych pomodora potrzebuje dane zadanie. Wymusza regułę Cirillo (podziel jeśli > 7, połącz jeśli < 1).",
       argsSchema: {},
     },
     async (args) => {
@@ -313,13 +316,14 @@ export function createServer(env: Env): McpServer {
             content: {
               type: "text" as const,
               text:
-                `Plan focused work on this task:\n\n"${taskDescription || "(ask the user what task they want to break down)"}"\n\n` +
-                "1. Call the `get_today_status` tool to know remaining capacity (today_completed vs today_target).\n" +
-                "2. Estimate how many 25-minute pomodoros this task realistically needs. Apply Cirillo's rule:\n" +
-                "   - If the estimate is > 7 pomodoros, break the task into smaller sub-tasks (each ≤ 7 pomodoros).\n" +
-                "   - If the estimate is < 1 pomodoro, suggest combining with another small task.\n" +
-                "3. Return a numbered breakdown: each item with a short label and pomodoro count.\n" +
-                "4. Ask the user to confirm before calling `start_pomodoro` on the first item.",
+                `Zaplanuj skupioną pracę nad zadaniem:\n\n"${taskDescription || "(zapytaj użytkownika, jakie zadanie chce rozbić)"}"\n\n` +
+                "1. Wywołaj narzędzie `get_today_status`, by poznać pozostałą pojemność dnia (today_completed vs today_target).\n" +
+                "2. Oszacuj, ile 25-minutowych pomodora realnie potrzeba na to zadanie. Zastosuj regułę Cirillo:\n" +
+                "   - Jeśli > 7 pomodora → rozbij zadanie na mniejsze (każde ≤ 7 pomodora).\n" +
+                "   - Jeśli < 1 pomodoro → zasugeruj połączenie z innym małym zadaniem.\n" +
+                "3. Zwróć ponumerowaną listę: krótka etykieta + liczba pomodora dla każdego elementu.\n" +
+                "4. Poproś użytkownika o potwierdzenie, zanim wywołasz `start_pomodoro` na pierwszym elemencie.\n" +
+                "5. Odpowiedz po polsku.",
             },
           },
         ],
