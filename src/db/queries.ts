@@ -133,24 +133,38 @@ async function getActiveSession(env: Env, userId: string): Promise<SessionRow | 
   ).bind(userId).first<SessionRow>();
 }
 
-// A session is "zombie" when its planned end was >2 hours ago but the widget
+// A session is "expired" when its planned ends_at is in the past but the widget
 // never called complete_pomodoro — typical when the host closes mid-session.
-// We discard them (DELETE row + its distraction rows) on the next start_pomodoro
-// rather than blocking the user with a manual recovery step.
-const STALE_GRACE_MS = 2 * 60 * 60 * 1000;
-
-function isStaleSession(session: SessionRow, now: number = Date.now()): boolean {
-  return now - new Date(session.ends_at).getTime() > STALE_GRACE_MS;
+// On the next start_pomodoro we auto-complete such a session (mark completed_at
+// = ends_at, NOT now — preserves correct daily-stats grouping) so the user can
+// immediately start a fresh one. No 2h grace: any past-ends_at session is
+// auto-completed, because blocking the new start with an error is the bug we
+// are fixing. If the user genuinely abandoned the session (came back days
+// later), it counts as completed on the day it was supposed to end — small
+// fairness loss vs. the much larger UX win of removing the blocker.
+function isExpiredSession(session: SessionRow, now: number = Date.now()): boolean {
+  return now >= new Date(session.ends_at).getTime();
 }
 
-async function discardZombieSession(env: Env, userId: string, sessionId: string): Promise<void> {
-  // No FK in the schema — delete distractions explicitly to avoid orphans.
-  await env.DB.batch([
-    env.DB.prepare(`DELETE FROM pomodoro_distractions WHERE session_id = ? AND user_id = ?`)
-      .bind(sessionId, userId),
-    env.DB.prepare(`DELETE FROM pomodoro_sessions WHERE id = ? AND user_id = ?`)
-      .bind(sessionId, userId),
-  ]);
+async function autoCompleteExpiredSession(
+  env: Env,
+  userId: string,
+  session: SessionRow,
+): Promise<void> {
+  // completed_at = session.ends_at, NOT isoNow(). Otherwise stats for "today"
+  // would be inflated by a session that actually ended yesterday/last week.
+  await env.DB.prepare(
+    `UPDATE pomodoro_sessions
+     SET completed_at = ?
+     WHERE id = ? AND user_id = ? AND completed_at IS NULL`,
+  ).bind(session.ends_at, session.id, userId).run();
+
+  if (session.session_type === "focus") {
+    // Recompute stats for the day the session ENDED, not today.
+    const endDate = session.ends_at.slice(0, 10);
+    await recomputeDailyStats(env, userId, endDate);
+    if (session.task_id) await bumpTaskPlannedIfNeeded(env, userId, session.task_id);
+  }
 }
 
 export interface StartSessionInput {
@@ -178,20 +192,24 @@ export async function startSession(
   userId: string,
   input: StartSessionInput,
 ): Promise<StartSessionResult> {
-  // Reject if focus session already running (force explicit completion per PRP §5).
-  // Exception: auto-discard "zombie" sessions where the widget closed before
-  // the timer hit zero — keeps `start_pomodoro` a single-call recovery path
-  // instead of forcing the model into a complete_pomodoro → start_pomodoro chain.
-  if (input.session_type === "focus") {
-    const active = await getActiveSession(env, userId);
-    if (active && active.session_type === "focus") {
-      if (isStaleSession(active)) {
-        await discardZombieSession(env, userId, active.id);
-      } else {
-        throw new Error(
-          `Active focus session already in progress (id=${active.id}). Complete or abandon it before starting a new one.`,
-        );
-      }
+  // Conflict resolution for any existing active session (regardless of type —
+  // otherwise starting a break with a focus already active would leave TWO
+  // active rows, and getActiveSession picks only the most recent → original
+  // focus row would silently become a phantom).
+  //
+  // Past ends_at  → auto-complete it (host probably closed mid-session;
+  //                  this is a single-call recovery path instead of forcing
+  //                  the LLM into a complete_pomodoro → start_pomodoro chain).
+  // Before ends_at → reject; the session is genuinely still running.
+  const active = await getActiveSession(env, userId);
+  if (active) {
+    if (isExpiredSession(active)) {
+      await autoCompleteExpiredSession(env, userId, active);
+    } else {
+      throw new Error(
+        `Active ${active.session_type} session still running (id=${active.id}, ends_at=${active.ends_at}). ` +
+        `Wait for the timer to finish, or call complete_pomodoro with session_id=${active.id} to end it now.`,
+      );
     }
   }
 
