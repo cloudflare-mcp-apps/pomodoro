@@ -160,9 +160,9 @@ async function autoCompleteExpiredSession(
   ).bind(session.ends_at, session.id, userId).run();
 
   if (session.session_type === "focus") {
-    // Recompute stats for the day the session ENDED, not today.
-    const endDate = session.ends_at.slice(0, 10);
-    await recomputeDailyStats(env, userId, endDate);
+    // Stats anchor on started_at — see recomputeDailyStats for rationale.
+    const sessionDate = session.started_at.slice(0, 10);
+    await recomputeDailyStats(env, userId, sessionDate);
     if (session.task_id) await bumpTaskPlannedIfNeeded(env, userId, session.task_id);
   }
 }
@@ -275,23 +275,31 @@ export async function completeSession(
 
   if (!row) throw new Error(`Session not found: ${input.session_id}`);
 
-  const previousStreak = (await readDailyStats(env, userId, utcToday())).streak;
+  // Anchor stats on the date the session STARTED, not when it was completed.
+  // A 23:51→00:16 session belongs to the day it started — keeps streaks stable
+  // across midnight and removes any race with cron rollover jobs.
+  const sessionDate = row.started_at.slice(0, 10);
+  const previousStreak = (await readDailyStats(env, userId, sessionDate)).streak;
 
   if (!row.completed_at) {
-    await env.DB.prepare(
-      `UPDATE pomodoro_sessions
-       SET completed_at = ?, notes = COALESCE(?, notes)
-       WHERE id = ? AND user_id = ? AND completed_at IS NULL`,
-    ).bind(isoNow(), input.notes ?? null, input.session_id, userId).run();
-
     if (row.session_type === "focus") {
-      await recomputeDailyStats(env, userId, utcToday());
+      // Atomic write-through: UPDATE + UPSERT in one D1 batch transaction.
+      // D1 batch executes sequentially and rolls back all statements if any
+      // fails, so the daily_stats count subquery sees the just-completed row.
+      await atomicCompleteAndRecompute(env, userId, input.session_id, input.notes ?? null, sessionDate);
       if (row.task_id) await bumpTaskPlannedIfNeeded(env, userId, row.task_id);
+    } else {
+      // Non-focus session: no stats impact, single UPDATE is enough.
+      await env.DB.prepare(
+        `UPDATE pomodoro_sessions
+         SET completed_at = ?, notes = COALESCE(?, notes)
+         WHERE id = ? AND user_id = ? AND completed_at IS NULL`,
+      ).bind(isoNow(), input.notes ?? null, input.session_id, userId).run();
     }
   }
   // Idempotent: if already completed, we just re-read stats below.
 
-  const stats = await readDailyStats(env, userId, utcToday());
+  const stats = await readDailyStats(env, userId, sessionDate);
   const suggestedNext: SessionType = row.session_type === "focus"
     ? (stats.completed > 0 && stats.completed % 4 === 0 ? "long_break" : "short_break")
     : "focus";
@@ -558,28 +566,65 @@ async function readDailyStats(
   return { completed: 0, streak: yRow?.streak_day ?? 0 };
 }
 
+// Stats anchor: `substr(started_at, 1, 10)`. A pomodoro is credited to the
+// calendar day on which the user started focusing — invariant across midnight
+// crossings, so streaks never race with cron jobs or get reset by a session
+// that happens to finish a few minutes into the next day.
+const RECOMPUTE_DAILY_STATS_SQL = `
+  INSERT INTO pomodoro_daily_stats (user_id, date, completed_count, streak_day)
+  VALUES (
+    ?1,
+    ?2,
+    (SELECT COUNT(*) FROM pomodoro_sessions
+      WHERE user_id = ?1 AND session_type = 'focus'
+        AND completed_at IS NOT NULL
+        AND substr(started_at, 1, 10) = ?2),
+    CASE WHEN (SELECT COUNT(*) FROM pomodoro_sessions
+                WHERE user_id = ?1 AND session_type = 'focus'
+                  AND completed_at IS NOT NULL
+                  AND substr(started_at, 1, 10) = ?2) > 0
+         THEN COALESCE((SELECT streak_day FROM pomodoro_daily_stats
+                          WHERE user_id = ?1 AND date = ?3), 0) + 1
+         ELSE 0
+    END
+  )
+  ON CONFLICT(user_id, date) DO UPDATE SET
+    completed_count = excluded.completed_count,
+    streak_day = excluded.streak_day
+`;
+
+function previousDate(date: string): string {
+  return utcYesterday(new Date(`${date}T00:00:00.000Z`));
+}
+
 async function recomputeDailyStats(env: Env, userId: string, date: string): Promise<void> {
-  const today = await env.DB.prepare(
-    `SELECT COUNT(*) AS n FROM pomodoro_sessions
-     WHERE user_id = ? AND session_type = 'focus'
-       AND completed_at IS NOT NULL
-       AND substr(completed_at, 1, 10) = ?`,
-  ).bind(userId, date).first<{ n: number }>();
+  await env.DB.prepare(RECOMPUTE_DAILY_STATS_SQL)
+    .bind(userId, date, previousDate(date))
+    .run();
+}
 
-  const completedToday = today?.n ?? 0;
+// Atomic write-through used by completeSession() for focus sessions.
+// Both statements run in a single D1 SQL transaction (batch semantics):
+//   1) close the session — sets completed_at + notes
+//   2) re-derive pomodoro_daily_stats for the session's anchor date
+// If either statement fails, D1 rolls back the entire sequence — no risk of
+// a closed session with stale stats, or stats credited to a session that
+// never closed.
+async function atomicCompleteAndRecompute(
+  env: Env,
+  userId: string,
+  sessionId: string,
+  notes: string | null,
+  sessionDate: string,
+): Promise<void> {
+  const updateStmt = env.DB.prepare(
+    `UPDATE pomodoro_sessions
+       SET completed_at = ?, notes = COALESCE(?, notes)
+     WHERE id = ? AND user_id = ? AND completed_at IS NULL`,
+  ).bind(isoNow(), notes, sessionId, userId);
 
-  let streak = 0;
-  if (completedToday > 0) {
-    const yRow = await env.DB.prepare(
-      `SELECT streak_day FROM pomodoro_daily_stats
-       WHERE user_id = ? AND date = ?`,
-    ).bind(userId, utcYesterday(new Date(`${date}T00:00:00.000Z`))).first<{ streak_day: number }>();
-    streak = (yRow?.streak_day ?? 0) + 1;
-  }
+  const recomputeStmt = env.DB.prepare(RECOMPUTE_DAILY_STATS_SQL)
+    .bind(userId, sessionDate, previousDate(sessionDate));
 
-  await env.DB.prepare(
-    `INSERT INTO pomodoro_daily_stats (user_id, date, completed_count, streak_day)
-     VALUES (?, ?, ?, ?)
-     ON CONFLICT(user_id, date) DO UPDATE SET completed_count = excluded.completed_count, streak_day = excluded.streak_day`,
-  ).bind(userId, date, completedToday, streak).run();
+  await env.DB.batch([updateStmt, recomputeStmt]);
 }
