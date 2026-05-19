@@ -14,10 +14,12 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
 import { getMcpAuthContext } from "agents/mcp";
 
+import type { RequestId } from "@modelcontextprotocol/sdk/types.js";
 import { TOOL_METADATA, getToolDescription, type ToolName } from "./tools/descriptions";
 import { SERVER_CONFIG } from "./shared/constants";
 import { UI_RESOURCES } from "./resources/ui-resources";
 import { loadHtml } from "./helpers/assets";
+import { requestElicitation } from "./helpers/elicitation";
 import { SERVER_INSTRUCTIONS } from "./server-instructions";
 import { logger } from "./shared/logger";
 
@@ -36,6 +38,8 @@ import {
 import {
   startSession, completeSession, logDistraction,
   getTodayStatus, getSessionHistory,
+  getActiveSession, isExpiredSession, abandonSession,
+  type SessionRow,
 } from "./db/queries";
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -111,6 +115,90 @@ async function runTool<T>(
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// Active-session conflict resolution via elicitation (MCP spec §Elicitation)
+// ────────────────────────────────────────────────────────────────────────────
+
+function formatRemaining(endsAt: string, now: number = Date.now()): string {
+  const ms = Math.max(0, new Date(endsAt).getTime() - now);
+  const totalSec = Math.round(ms / 1000);
+  const mm = Math.floor(totalSec / 60).toString().padStart(2, "0");
+  const ss = (totalSec % 60).toString().padStart(2, "0");
+  return `${mm}:${ss}`;
+}
+
+const ACTIVE_SESSION_ERROR_HINT = (active: SessionRow) =>
+  `Active ${active.session_type} session still running (id=${active.id}, ends_at=${active.ends_at}). ` +
+  `Wait for the timer to finish, or call complete_pomodoro with session_id=${active.id} to end it now.`;
+
+/**
+ * Pre-flight conflict resolution for start_pomodoro. If there is an active
+ * session, ask the user mid-tool-call what to do via form elicitation
+ * (per spec §Form Mode). Three accept choices map to three database paths;
+ * decline/cancel/unsupported fall back to the original throw so the LLM can
+ * recover the old way.
+ */
+async function resolveActiveSessionConflict(
+  server: McpServer,
+  env: Env,
+  userId: string,
+  relatedRequestId: RequestId,
+): Promise<void> {
+  const active = await getActiveSession(env, userId);
+  if (!active) return;
+
+  // Expired sessions are already handled by startSession (auto-complete).
+  // Only block when there is a genuinely running timer.
+  if (isExpiredSession(active)) return;
+
+  const remaining = formatRemaining(active.ends_at);
+
+  const outcome = await requestElicitation<{ resolution: string }>(
+    server,
+    {
+      message: `Masz aktywną sesję (zostało ${remaining}). Co robimy?`,
+      requestedSchema: {
+        type: "object",
+        properties: {
+          resolution: {
+            type: "string",
+            title: "Co zrobić z aktywną sesją?",
+            oneOf: [
+              { const: "complete_and_start", title: "Zamknij obecną i zacznij nową" },
+              { const: "abandon_and_start",  title: "Porzuć obecną i zacznij nową" },
+              { const: "keep_current",       title: "Zostaw obecną sesję" },
+            ],
+          },
+        },
+        required: ["resolution"],
+      },
+    },
+    { relatedRequestId },
+  );
+
+  switch (outcome.kind) {
+    case "accept": {
+      const choice = outcome.content.resolution;
+      if (choice === "complete_and_start") {
+        await completeSession(env, userId, { session_id: active.id });
+        return;
+      }
+      if (choice === "abandon_and_start") {
+        await abandonSession(env, userId, active.id);
+        return;
+      }
+      // keep_current — fall through to the same error LLM would have seen.
+      throw new Error(ACTIVE_SESSION_ERROR_HINT(active));
+    }
+    case "decline":
+    case "cancel":
+    case "unsupported":
+      // No data from user → preserve the original failure mode so the LLM
+      // can drive a complete_pomodoro → start_pomodoro chain on its own.
+      throw new Error(ACTIVE_SESSION_ERROR_HINT(active));
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // Server factory — fresh McpServer per request (GHSA-345p-7cg4-v4c7 safe)
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -158,17 +246,23 @@ export function createServer(env: Env): McpServer {
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       _meta: { ui: { resourceUri: widgetResource.uri } },
     },
-    async (rawParams) => {
+    async (rawParams, extra) => {
       const p = rawParams as StartPomodoroParams;
       return runTool(
         "start_pomodoro",
-        (userId) =>
-          startSession(env, userId, {
+        async (userId) => {
+          // Pre-flight: resolve any active-session conflict via elicitation
+          // before delegating to startSession. If the user picks complete or
+          // abandon, the DB state is mutated here so startSession's internal
+          // check sees no conflict.
+          await resolveActiveSessionConflict(server, env, userId, extra.requestId);
+          return startSession(env, userId, {
             task: p.task,
             task_id: p.task_id,
             duration_minutes: p.duration_minutes ?? 25,
             session_type: p.session_type ?? "focus",
-          }),
+          });
+        },
         (r) => `Rozpoczęto: ${r.task} · ${r.duration_minutes}:00 · ${r.today_completed}/${r.today_target} dzisiaj (passa ${r.current_streak})`,
       );
     },

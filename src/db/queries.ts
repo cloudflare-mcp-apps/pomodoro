@@ -24,6 +24,7 @@ export interface SessionRow {
   started_at: string;
   ends_at: string;
   completed_at: string | null;
+  abandoned_at: string | null;
   notes: string | null;
 }
 
@@ -123,14 +124,33 @@ async function bumpTaskPlannedIfNeeded(env: Env, userId: string, taskId: string)
 // Sessions
 // ──────────────────────────────────────────────────────────────────────────
 
-async function getActiveSession(env: Env, userId: string): Promise<SessionRow | null> {
+export async function getActiveSession(env: Env, userId: string): Promise<SessionRow | null> {
   return env.DB.prepare(
-    `SELECT id, user_id, task_id, session_type, duration_minutes, started_at, ends_at, completed_at, notes
+    `SELECT id, user_id, task_id, session_type, duration_minutes, started_at, ends_at, completed_at, abandoned_at, notes
      FROM pomodoro_sessions
-     WHERE user_id = ? AND completed_at IS NULL
+     WHERE user_id = ? AND completed_at IS NULL AND abandoned_at IS NULL
      ORDER BY started_at DESC
      LIMIT 1`,
   ).bind(userId).first<SessionRow>();
+}
+
+/**
+ * Mark a session as abandoned (user explicitly walked away mid-session).
+ *
+ * Unlike completeSession, this does NOT update daily_stats — an abandoned
+ * pomodoro is Cirillo's "didn't count, restart from zero". The row stays
+ * for history/analytics (visible in getSessionHistory as abandoned).
+ */
+export async function abandonSession(
+  env: Env,
+  userId: string,
+  sessionId: string,
+): Promise<void> {
+  await env.DB.prepare(
+    `UPDATE pomodoro_sessions
+       SET abandoned_at = ?
+     WHERE id = ? AND user_id = ? AND completed_at IS NULL AND abandoned_at IS NULL`,
+  ).bind(isoNow(), sessionId, userId).run();
 }
 
 // A session is "expired" when its planned ends_at is in the past but the widget
@@ -142,7 +162,7 @@ async function getActiveSession(env: Env, userId: string): Promise<SessionRow | 
 // are fixing. If the user genuinely abandoned the session (came back days
 // later), it counts as completed on the day it was supposed to end — small
 // fairness loss vs. the much larger UX win of removing the blocker.
-function isExpiredSession(session: SessionRow, now: number = Date.now()): boolean {
+export function isExpiredSession(session: SessionRow, now: number = Date.now()): boolean {
   return now >= new Date(session.ends_at).getTime();
 }
 
@@ -268,12 +288,13 @@ export async function completeSession(
   input: CompleteSessionInput,
 ): Promise<CompleteSessionResult> {
   const row = await env.DB.prepare(
-    `SELECT id, user_id, task_id, session_type, duration_minutes, started_at, ends_at, completed_at, notes
+    `SELECT id, user_id, task_id, session_type, duration_minutes, started_at, ends_at, completed_at, abandoned_at, notes
      FROM pomodoro_sessions
      WHERE id = ? AND user_id = ?`,
   ).bind(input.session_id, userId).first<SessionRow>();
 
   if (!row) throw new Error(`Session not found: ${input.session_id}`);
+  if (row.abandoned_at) throw new Error(`Session already abandoned: ${input.session_id}`);
 
   // Anchor stats on the date the session STARTED, not when it was completed.
   // A 23:51→00:16 session belongs to the day it started — keeps streaks stable
@@ -479,14 +500,15 @@ export async function getSessionHistory(
 
   const rows = await env.DB.prepare(
     `SELECT s.id, s.task_id, s.session_type, s.duration_minutes,
-            s.started_at, s.completed_at, t.label AS task_label
+            s.started_at, s.completed_at, s.abandoned_at, t.label AS task_label
      FROM pomodoro_sessions s
      LEFT JOIN pomodoro_tasks t ON t.id = s.task_id AND t.user_id = s.user_id
      WHERE s.user_id = ? AND s.started_at >= ?
      ORDER BY s.started_at DESC`,
   ).bind(userId, cutoff.toISOString()).all<{
     id: string; task_id: string | null; session_type: SessionType; duration_minutes: number;
-    started_at: string; completed_at: string | null; task_label: string | null;
+    started_at: string; completed_at: string | null; abandoned_at: string | null;
+    task_label: string | null;
   }>();
 
   const sessions = rows.results ?? [];
@@ -514,10 +536,11 @@ export async function getSessionHistory(
   let distractionCount = 0;
   const out = sessions.map((s) => {
     const isCompleted = s.completed_at !== null;
+    const isAbandoned = s.abandoned_at !== null;
     if (s.session_type === "focus" && isCompleted) {
       focusMinutes += s.duration_minutes;
       completed += 1;
-    } else if (s.session_type === "focus" && !isCompleted) {
+    } else if (s.session_type === "focus" && (isAbandoned || !isCompleted)) {
       abandoned += 1;
     }
     const distractions = distractionsBySession.get(s.id) ?? [];
