@@ -263,7 +263,7 @@ export function createServer(env: Env): McpServer {
             session_type: p.session_type ?? "focus",
           });
         },
-        (r) => `Rozpoczęto: ${r.task} · ${r.duration_minutes}:00 · ${r.today_completed}/${r.today_target} dzisiaj (passa ${r.current_streak})`,
+        (r) => `Rozpoczęto: ${r.task} · ${r.duration_minutes}:00 · ${r.today_completed}/${r.today_target} dzisiaj (passa ${r.current_streak}) · session_id=${r.session_id} (użyj go w log_distraction / complete_pomodoro).`,
       );
     },
   );
@@ -338,7 +338,9 @@ export function createServer(env: Env): McpServer {
         "get_today_status",
         (userId) => getTodayStatus(env, userId),
         (r) => {
-          const active = r.active_session ? ` · aktywne: ${r.active_session.task}` : "";
+          const active = r.active_session
+            ? ` · aktywne: ${r.active_session.task} (session_id=${r.active_session.session_id})`
+            : "";
           const streak = r.current_streak >= 3 ? ` · 🔥 ${r.current_streak}` : "";
           return `${r.today_completed}/${r.today_target} pomodoro dzisiaj${streak}${active}`;
         },
