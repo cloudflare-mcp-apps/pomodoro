@@ -1,0 +1,1041 @@
+{
+  "target": {
+    "kind": "http",
+    "label": "https://pomodoro.wtyczki.ai/mcp",
+    "url": "https://pomodoro.wtyczki.ai/mcp",
+    "commandArgs": [],
+    "envKeys": [],
+    "headerNames": [],
+    "timeoutMs": 30000,
+    "hasAccessToken": false,
+    "hasRefreshToken": true,
+    "hasClientSecret": false
+  },
+  "generatedAt": "2026-05-23T21:37:17.011Z",
+  "status": "ready",
+  "probe": {
+    "url": "https://pomodoro.wtyczki.ai/mcp",
+    "protocolVersion": "2025-11-25",
+    "status": "oauth_required",
+    "transport": {
+      "attempts": [
+        {
+          "name": "streamable_initialize",
+          "request": {
+            "method": "POST",
+            "url": "https://pomodoro.wtyczki.ai/mcp",
+            "headers": {
+              "Content-Type": "application/json",
+              "Accept": "application/json, text/event-stream"
+            },
+            "body": {
+              "jsonrpc": "2.0",
+              "id": 1,
+              "method": "initialize",
+              "params": {
+                "protocolVersion": "2025-11-25",
+                "capabilities": {},
+                "clientInfo": {
+                  "name": "mcpjam-probe",
+                  "version": "1.0.0"
+                }
+              }
+            }
+          },
+          "durationMs": 109,
+          "response": {
+            "status": 401,
+            "statusText": "Unauthorized",
+            "headers": {
+              "alt-svc": "h3=\":443\"; ma=86400",
+              "cf-ray": "a00733728a28c405-WAW",
+              "connection": "keep-alive",
+              "content-length": "24",
+              "content-type": "application/json",
+              "date": "Sat, 23 May 2026 21:37:17 GMT",
+              "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+              "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=SzAtMZP6MW1i2csaTetgYZyJOkXBNhSpZ%2BAks0GxzBdtfAHTP0oNKu9XKf%2FirjxZQ4vFOHUEHX7XULyBSFElsVUX4UjTcIJh7sSPXvg8kiDC8DCub4UeP29x9iCwvO42aklgRyhB\"}]}",
+              "server": "cloudflare",
+              "www-authenticate": "Bearer error=\"unauthorized\", error_description=\"Authorization needed\", resource_metadata=\"https://pomodoro.wtyczki.ai/.well-known/oauth-protected-resource\""
+            },
+            "body": {
+              "error": "Unauthorized"
+            },
+            "contentType": "application/json"
+          }
+        },
+        {
+          "name": "resource_metadata",
+          "request": {
+            "method": "GET",
+            "url": "https://pomodoro.wtyczki.ai/.well-known/oauth-protected-resource",
+            "headers": {
+              "mcp-protocol-version": "2025-11-25"
+            }
+          },
+          "durationMs": 67,
+          "response": {
+            "status": 200,
+            "statusText": "OK",
+            "headers": {
+              "alt-svc": "h3=\":443\"; ma=86400",
+              "cf-ray": "a00733731ddad241-WAW",
+              "connection": "keep-alive",
+              "content-encoding": "br",
+              "content-type": "application/json",
+              "date": "Sat, 23 May 2026 21:37:17 GMT",
+              "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+              "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=ZlXoxRJYC%2FJSj1ZBRraTx1rR77NDLwo4aLLNz1HY9rBhuhOPqxugBhBbxBjZKKVj1NdkRU3CayOHpwTR4fiewMNW0HqTmpoQGhczGzRjDU%2FyzfYlL5tSQXOFZuoV64Cg5llPmQHq\"}]}",
+              "server": "cloudflare",
+              "speculation-rules": "\"/cdn-cgi/speculation\"",
+              "transfer-encoding": "chunked"
+            },
+            "body": {
+              "resource": "https://pomodoro.wtyczki.ai",
+              "authorization_servers": [
+                "https://exciting-domain-65.authkit.app"
+              ],
+              "bearer_methods_supported": [
+                "header"
+              ]
+            },
+            "contentType": "application/json"
+          }
+        },
+        {
+          "name": "authorization_server_metadata",
+          "request": {
+            "method": "GET",
+            "url": "https://exciting-domain-65.authkit.app/.well-known/oauth-authorization-server",
+            "headers": {}
+          },
+          "durationMs": 829,
+          "response": {
+            "status": 200,
+            "statusText": "OK",
+            "headers": {
+              "access-control-allow-credentials": "true",
+              "age": "0",
+              "cache-control": "public, max-age=0, must-revalidate",
+              "cf-cache-status": "DYNAMIC",
+              "cf-ray": "a00733741993bf5b-WAW",
+              "connection": "keep-alive",
+              "content-encoding": "br",
+              "content-security-policy": "default-src 'self';base-uri 'self';block-all-mixed-content;font-src 'self' https: data:;frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+              "content-security-policy-report-only": "default-src 'self'; script-src 'self' 'nonce-IB9hUOrKfn9ywLxhPhckPA==' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' *; img-src * data:; font-src * data:; connect-src *; frame-src 'self' https://challenges.cloudflare.com; frame-ancestors https://bolt.new https://lovable.dev https://replit.com https://riff.new https://v0.app; upgrade-insecure-requests; worker-src 'self'; report-uri https://browser-intake-datadoghq.com/api/v2/logs?dd-api-key=pubb28ba93eb59013963476c6dd6c190040&dd-evp-origin=content-security-policy&ddsource=csp-report; report-to csp-datadog",
+              "content-type": "application/json; charset=utf-8",
+              "date": "Sat, 23 May 2026 21:37:18 GMT",
+              "etag": "W/\"333-F9ZcNQIFgDg4CAVTWreNL+nfJsM\"",
+              "expect-ct": "max-age=0",
+              "referrer-policy": "no-referrer",
+              "reporting-endpoints": "csp-datadog=\"https://browser-intake-datadoghq.com/api/v2/logs?dd-api-key=pubb28ba93eb59013963476c6dd6c190040&dd-evp-origin=content-security-policy&ddsource=csp-report\"",
+              "server": "cloudflare",
+              "set-cookie": "[REDACTED]",
+              "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+              "transfer-encoding": "chunked",
+              "vary": "RSC, Next-Router-State-Tree, Next-Router-Prefetch, Origin, Accept-Encoding",
+              "x-content-type-options": "nosniff",
+              "x-dns-prefetch-control": "off",
+              "x-download-options": "noopen",
+              "x-envoy-upstream-service-time": "15",
+              "x-frame-options": "SAMEORIGIN",
+              "x-matched-path": "/.well-known/[[...path]]",
+              "x-nonce": "IB9hUOrKfn9ywLxhPhckPA==",
+              "x-permitted-cross-domain-policies": "none",
+              "x-request-id": "2e72d941-8f1d-4eb8-a8e9-1c75084a581d",
+              "x-vercel-cache": "MISS",
+              "x-vercel-id": "arn1::iad1::ds956-1779572237845-f44c450446ad",
+              "x-xss-protection": "0"
+            },
+            "body": {
+              "authorization_endpoint": "https://exciting-domain-65.authkit.app/oauth2/authorize",
+              "client_id_metadata_document_supported": true,
+              "code_challenge_methods_supported": [
+                "S256"
+              ],
+              "grant_types_supported": [
+                "authorization_code",
+                "refresh_token"
+              ],
+              "introspection_endpoint": "https://exciting-domain-65.authkit.app/oauth2/introspection",
+              "issuer": "https://exciting-domain-65.authkit.app",
+              "jwks_uri": "https://exciting-domain-65.authkit.app/oauth2/jwks",
+              "registration_endpoint": "https://exciting-domain-65.authkit.app/oauth2/register",
+              "scopes_supported": [
+                "email",
+                "offline_access",
+                "openid",
+                "profile"
+              ],
+              "response_modes_supported": [
+                "query"
+              ],
+              "response_types_supported": [
+                "code"
+              ],
+              "token_endpoint": "https://exciting-domain-65.authkit.app/oauth2/token",
+              "token_endpoint_auth_methods_supported": [
+                "none",
+                "client_secret_post",
+                "client_secret_basic"
+              ]
+            },
+            "contentType": "application/json; charset=utf-8"
+          }
+        }
+      ]
+    },
+    "oauth": {
+      "required": true,
+      "optional": false,
+      "wwwAuthenticate": "Bearer error=\"unauthorized\", error_description=\"Authorization needed\", resource_metadata=\"https://pomodoro.wtyczki.ai/.well-known/oauth-protected-resource\"",
+      "resourceMetadataUrl": "https://pomodoro.wtyczki.ai/.well-known/oauth-protected-resource",
+      "resourceMetadata": {
+        "resource": "https://pomodoro.wtyczki.ai",
+        "authorization_servers": [
+          "https://exciting-domain-65.authkit.app"
+        ],
+        "bearer_methods_supported": [
+          "header"
+        ]
+      },
+      "authorizationServerMetadataUrl": "https://exciting-domain-65.authkit.app/.well-known/oauth-authorization-server",
+      "authorizationServerMetadata": {
+        "authorization_endpoint": "https://exciting-domain-65.authkit.app/oauth2/authorize",
+        "client_id_metadata_document_supported": true,
+        "code_challenge_methods_supported": [
+          "S256"
+        ],
+        "grant_types_supported": [
+          "authorization_code",
+          "refresh_token"
+        ],
+        "introspection_endpoint": "https://exciting-domain-65.authkit.app/oauth2/introspection",
+        "issuer": "https://exciting-domain-65.authkit.app",
+        "jwks_uri": "https://exciting-domain-65.authkit.app/oauth2/jwks",
+        "registration_endpoint": "https://exciting-domain-65.authkit.app/oauth2/register",
+        "scopes_supported": [
+          "email",
+          "offline_access",
+          "openid",
+          "profile"
+        ],
+        "response_modes_supported": [
+          "query"
+        ],
+        "response_types_supported": [
+          "code"
+        ],
+        "token_endpoint": "https://exciting-domain-65.authkit.app/oauth2/token",
+        "token_endpoint_auth_methods_supported": [
+          "none",
+          "client_secret_post",
+          "client_secret_basic"
+        ]
+      },
+      "registrationStrategies": [
+        "preregistered",
+        "dcr",
+        "cimd"
+      ]
+    }
+  },
+  "connection": {
+    "status": "connected",
+    "detail": "Connected and initialized successfully."
+  },
+  "initInfo": {
+    "protocolVersion": "2025-11-25",
+    "transport": "streamable-http",
+    "serverCapabilities": {
+      "prompts": {
+        "listChanged": true
+      },
+      "resources": {
+        "listChanged": true
+      },
+      "tools": {
+        "listChanged": true
+      }
+    },
+    "serverVersion": {
+      "name": "Pomodoro Focus",
+      "version": "1.0.0"
+    },
+    "instructions": "Pomodoro Focus — focused-work tracking with per-user sessions, distraction inventory, and end-of-day reflection.\n\n## Key Capabilities\n\n- Start, complete, and inventory Pomodoro sessions anchored to a task.\n- Capture distractions mid-session without breaking flow (Cirillo's \"inventory\" rule).\n- Track daily completion count, multi-day streak, and per-task progress.\n\n## Usage Patterns\n\n- Always call `get_today_status` first when the conversation opens or the widget mounts — it powers the dashboard and tells you whether a session is already active.\n- Never call `start_pomodoro` while a focus session is active; complete the current one first. The tool rejects this case and returns an error.\n- When the user mentions an interruption, call `log_distraction` — do NOT pause or stop the session. Inventory-without-breaking-flow is the whole point.\n- After every 4th completed focus session, suggest a long break (15-30 min); otherwise a short break (5 min). The tool result's `suggested_next` field carries this hint.\n- For pattern analysis or end-of-day reflection, call `get_session_history` (1-30 days) before responding.\n\n## Prompts\n\n- /daily-reflection: end-of-day summary (wins, distraction themes, one tweak for tomorrow). Pulls today's sessions automatically.\n- /plan-focus-session: break a task into pomodoros (Cirillo's rule: split if >7, combine if <1).\n\n## Performance & Limits\n\n- All tool calls hit D1 with user-scoped indexes — expect <100 ms server time.\n- Default session length 25 min; allowed values 15 / 25 / 45 / 50. Suggest >25 only for explicit deep-work requests.\n- \"Today\" is computed in UTC in v1.0 (multi-timezone is a v1.1 concern — flag if the user's local midnight differs).\n\n## Language\n\nTargets Polish-speaking users (wtyczki.ai). **Respond to the user in Polish** unless they explicitly switch language. Tool result `content[]` is already Polish — pass through verbatim, don't re-translate.\n\n## Example queries (Polish)\n\n- \"Zacznij pomodoro na napisanie raportu.\"\n- \"Skończyłem, podsumuj dzień.\"\n- \"Coś mnie rozproszyło — wpisz: dzwoni telefon.\"\n- \"Jak mi idzie dzisiaj?\"\n- \"Rozbij na pomodora: 'Przygotować prezentację na poniedziałek'.\"\n\n## Important Notes\n\n- Authentication is automatic (WorkOS AuthKit JWT); no per-user credentials to manage.\n- The widget is the surface for active timers — when starting a session, simply invoke `start_pomodoro`; the host renders the timer automatically.",
+    "clientCapabilities": {
+      "extensions": {
+        "io.modelcontextprotocol/ui": {
+          "mimeTypes": [
+            "text/html;profile=mcp-app"
+          ]
+        }
+      }
+    }
+  },
+  "capabilities": {
+    "prompts": {
+      "listChanged": true
+    },
+    "resources": {
+      "listChanged": true
+    },
+    "tools": {
+      "listChanged": true
+    }
+  },
+  "tools": [
+    {
+      "name": "start_pomodoro",
+      "title": "Start a Pomodoro session",
+      "description": "Start a focused Pomodoro session anchored to a task. Rejects if a focus session is already active — call complete_pomodoro first. Allowed durations: 15, 25, 45, 50 min (default 25).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "task": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "The task to focus on during this pomodoro."
+          },
+          "duration_minutes": {
+            "description": "Session length in minutes. Default 25 (classic Pomodoro). Allowed: 15, 25, 45, 50.",
+            "anyOf": [
+              {
+                "type": "number",
+                "const": 15
+              },
+              {
+                "type": "number",
+                "const": 25
+              },
+              {
+                "type": "number",
+                "const": 45
+              },
+              {
+                "type": "number",
+                "const": 50
+              }
+            ]
+          },
+          "session_type": {
+            "description": "Session category. Default 'focus'. Use 'short_break' (5m) between pomodoros, 'long_break' (15-30m) every 4th.",
+            "type": "string",
+            "enum": [
+              "focus",
+              "short_break",
+              "long_break"
+            ]
+          },
+          "task_id": {
+            "description": "Existing task UUID to attach this pomodoro to. Omit to create or reuse a task from the `task` label.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "task"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Server-issued session handle. Pass to complete_pomodoro / log_distraction."
+          },
+          "task": {
+            "type": "string",
+            "description": "Task label this session is anchored to."
+          },
+          "task_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Task UUID — reuse for subsequent pomodoros on the same task."
+          },
+          "started_at": {
+            "type": "string",
+            "description": "Session start, ISO 8601 (UTC)."
+          },
+          "ends_at": {
+            "type": "string",
+            "description": "Session target end, ISO 8601 (UTC) — authoritative for the widget countdown."
+          },
+          "session_type": {
+            "type": "string",
+            "enum": [
+              "focus",
+              "short_break",
+              "long_break"
+            ],
+            "description": "Session category."
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Session length in minutes."
+          },
+          "today_completed": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Total completed focus pomodoros today (UTC)."
+          },
+          "today_target": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Daily target (default 8)."
+          },
+          "current_streak": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Days in a row with at least one completed focus session."
+          }
+        },
+        "required": [
+          "session_id",
+          "task",
+          "task_id",
+          "started_at",
+          "ends_at",
+          "session_type",
+          "duration_minutes",
+          "today_completed",
+          "today_target",
+          "current_streak"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "complete_pomodoro",
+      "title": "Complete the active Pomodoro",
+      "description": "Mark a Pomodoro session as completed and roll the streak forward. Idempotent on session_id — calling twice does not double-count. Long break is suggested every 4th completed focus session.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Session ID returned by start_pomodoro."
+          },
+          "distractions_count": {
+            "description": "Number of distractions logged during the session (server auto-derives if omitted).",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "notes": {
+            "description": "Optional reflection on what shipped during the session.",
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "session_id"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Echo of the completed session ID."
+          },
+          "today_completed": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Updated count of completed focus pomodoros today."
+          },
+          "today_target": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Daily target (default 8)."
+          },
+          "current_streak": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Updated streak (may increment if this was the first completion today)."
+          },
+          "suggested_next": {
+            "type": "string",
+            "enum": [
+              "focus",
+              "short_break",
+              "long_break"
+            ],
+            "description": "Suggested next session type (long_break every 4th, short_break otherwise, focus after a break)."
+          },
+          "streak_milestone": {
+            "type": "boolean",
+            "description": "True if current_streak grew with this completion."
+          }
+        },
+        "required": [
+          "session_id",
+          "today_completed",
+          "today_target",
+          "current_streak",
+          "suggested_next",
+          "streak_milestone"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "log_distraction",
+      "title": "Log a distraction without breaking focus",
+      "description": "Log a distraction (internal thought or external event) during the active session. Does NOT pause or stop the session — that defeats Cirillo's 'inventory' rule. Description capped at 200 chars; keep it short.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Active session ID."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "internal",
+              "external"
+            ],
+            "description": "internal = stray thought / urge to switch tasks. external = phone, message, person."
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Short note about the distraction so it can be reviewed after the session."
+          }
+        },
+        "required": [
+          "session_id",
+          "type",
+          "description"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "distraction_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "ID of the newly logged distraction."
+          },
+          "session_distraction_count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Running count of distractions logged in this session."
+          },
+          "parked_items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "session_id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "user_id": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "internal",
+                    "external"
+                  ]
+                },
+                "description": {
+                  "type": "string"
+                },
+                "logged_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "session_id",
+                "user_id",
+                "type",
+                "description",
+                "logged_at"
+              ],
+              "additionalProperties": false,
+              "description": "Distraction inventory entry."
+            },
+            "description": "All distractions for this session, oldest first."
+          }
+        },
+        "required": [
+          "distraction_id",
+          "session_distraction_count",
+          "parked_items"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "get_today_status",
+      "title": "Get today's Pomodoro dashboard",
+      "description": "Get today's Pomodoro dashboard: active session, completed count, streak, and per-task progress. No parameters. UTC-based 'today' in v1.0 — flag if the user's local midnight differs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "active_session": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "session_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "task": {
+                    "type": "string"
+                  },
+                  "task_id": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "started_at": {
+                    "type": "string"
+                  },
+                  "ends_at": {
+                    "type": "string"
+                  },
+                  "duration_minutes": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "session_type": {
+                    "type": "string",
+                    "enum": [
+                      "focus",
+                      "short_break",
+                      "long_break"
+                    ]
+                  }
+                },
+                "required": [
+                  "session_id",
+                  "task",
+                  "task_id",
+                  "started_at",
+                  "ends_at",
+                  "duration_minutes",
+                  "session_type"
+                ],
+                "additionalProperties": false,
+                "description": "Currently running session (if any)."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null when no session is in progress."
+          },
+          "today_completed": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Completed focus pomodoros today (UTC)."
+          },
+          "today_target": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Daily target (default 8)."
+          },
+          "current_streak": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Days in a row with at least one completion."
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "planned_pomodoros": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "completed_pomodoros": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "planned_pomodoros",
+                "completed_pomodoros"
+              ],
+              "additionalProperties": false,
+              "description": "Task with per-task pomodoro progress."
+            },
+            "description": "Up to 10 most recent active tasks."
+          },
+          "distractions_today": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Distraction count across all sessions today."
+          }
+        },
+        "required": [
+          "active_session",
+          "today_completed",
+          "today_target",
+          "current_streak",
+          "tasks",
+          "distractions_today"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "get_session_history",
+      "title": "List recent Pomodoro sessions",
+      "description": "List Pomodoro sessions from the last N days (1-30) for pattern analysis. For end-of-day reflection, prefer the `daily-reflection` prompt — it pulls the data automatically and frames the LLM's analysis.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "description": "Number of days back from today to include. Default 1.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          },
+          "include_distractions": {
+            "description": "Whether to inline distraction records into each session. Default true.",
+            "type": "boolean"
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "sessions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "session_id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "started_at": {
+                  "type": "string"
+                },
+                "task": {
+                  "type": "string"
+                },
+                "session_type": {
+                  "type": "string",
+                  "enum": [
+                    "focus",
+                    "short_break",
+                    "long_break"
+                  ]
+                },
+                "duration_minutes": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "completed": {
+                  "type": "boolean"
+                },
+                "distractions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "session_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "user_id": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "internal",
+                          "external"
+                        ]
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "logged_at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "session_id",
+                      "user_id",
+                      "type",
+                      "description",
+                      "logged_at"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Distraction inventory entry."
+                  }
+                }
+              },
+              "required": [
+                "session_id",
+                "started_at",
+                "task",
+                "session_type",
+                "duration_minutes",
+                "completed",
+                "distractions"
+              ],
+              "additionalProperties": false,
+              "description": "One historical session with inline distractions."
+            },
+            "description": "Sessions in the window, started_at DESC."
+          },
+          "totals": {
+            "type": "object",
+            "properties": {
+              "focus_minutes": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Total focus minutes in the window (completed sessions only)."
+              },
+              "completed_sessions": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "abandoned_sessions": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "distraction_count": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "focus_minutes",
+              "completed_sessions",
+              "abandoned_sessions",
+              "distraction_count"
+            ],
+            "additionalProperties": false,
+            "description": "Aggregated totals across the window."
+          }
+        },
+        "required": [
+          "sessions",
+          "totals"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    }
+  ],
+  "toolsMetadata": {
+    "start_pomodoro": {
+      "ui": {
+        "resourceUri": "ui://pomodoro/widget"
+      }
+    },
+    "get_today_status": {
+      "ui": {
+        "resourceUri": "ui://pomodoro/widget"
+      }
+    }
+  },
+  "resources": [
+    {
+      "name": "widget",
+      "uri": "ui://pomodoro/widget",
+      "description": "Interactive widget for Pomodoro Focus. TODO: Replace with a detailed description of what this widget displays and its features.",
+      "mimeType": "text/html;profile=mcp-app",
+      "_meta": {
+        "ui": {
+          "csp": {
+            "connectDomains": [],
+            "resourceDomains": [
+              "https://assets.claude.ai",
+              "https://persistent.oaistatic.com",
+              "https://*.oaistatic.com"
+            ],
+            "baseUriDomains": []
+          },
+          "domain": "9ba9ea0ee91c9914cbf9f9513d8f27a8.claudemcpcontent.com",
+          "prefersBorder": false
+        }
+      }
+    }
+  ],
+  "resourceTemplates": [],
+  "prompts": [
+    {
+      "name": "daily-reflection",
+      "title": "Refleksja na koniec dnia",
+      "description": "Wygeneruj podsumowanie dzisiejszych sesji Pomodoro. LLM użytkownika czyta historię sesji (przez get_session_history) i zwraca: co zostało zrobione, powtarzające się rozproszenia, jedną zmianę na jutro.",
+      "arguments": []
+    },
+    {
+      "name": "plan-focus-session",
+      "title": "Rozbij zadanie na pomodora",
+      "description": "Pomóż użytkownikowi oszacować, ile 25-minutowych pomodora potrzebuje dane zadanie. Wymusza regułę Cirillo (podziel jeśli > 7, połącz jeśli < 1).",
+      "arguments": []
+    }
+  ],
+  "checks": {
+    "probe": {
+      "status": "ok",
+      "detail": "Unauthenticated probe requires OAuth; continuing with provided credentials."
+    },
+    "connection": {
+      "status": "ok",
+      "detail": "Connected and initialized successfully."
+    },
+    "initialization": {
+      "status": "ok",
+      "detail": "Initialization info captured."
+    },
+    "capabilities": {
+      "status": "ok",
+      "detail": "Server capabilities captured."
+    },
+    "tools": {
+      "status": "ok",
+      "detail": "5 tools discovered."
+    },
+    "resources": {
+      "status": "ok",
+      "detail": "1 resource discovered."
+    },
+    "resourceTemplates": {
+      "status": "ok",
+      "detail": "0 resource templates discovered."
+    },
+    "prompts": {
+      "status": "ok",
+      "detail": "2 prompts discovered."
+    }
+  },
+  "error": null
+}

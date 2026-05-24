@@ -1,28 +1,6 @@
 /**
- * Cloudflare Workers Configuration for Pomodoro Focus MCP Server
- *
- * Architecture: Resource Server with JWT verification (AuthKit) + API key auth (D1)
- * - AuthKit handles OAuth 2.1 flows (authorization, tokens, PKCE, DCR)
- * - This worker verifies JWTs via JWKS and serves MCP protocol
- * - D1 database for user lookup and API key validation
- *
- * CUSTOMIZATION CHECKLIST:
- * ========================
- * REQUIRED CHANGES (search for {{PLACEHOLDERS}}):
- *   1. "name": Change pomodoro to your server's kebab-case name (e.g., "weather-mcp")
- *   2. "routes.pattern": Change pomodoro to your subdomain (e.g., "weather.wtyczki.ai")
- *
- * SHARED INFRASTRUCTURE (DO NOT CHANGE):
- *   - D1 database ID (mcp-oauth)
- *   - AUTHKIT_DOMAIN
- *
- * OPTIONAL ADDITIONS:
- *   - Uncomment AI binding if you need Workers AI
- *   - Uncomment R2 binding if you need file storage
- *   - Uncomment Browser binding if you need browser rendering
- *
- * For more details on Wrangler configuration:
- * https://developers.cloudflare.com/workers/wrangler/configuration/
+ * Cloudflare Workers configuration for Pomodoro Focus MCP server.
+ * Thin resource server: AuthKit JWT verification + shared mcp-oauth D1.
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
@@ -49,7 +27,7 @@
 
   /**
    * D1 Database - Shared mcp-oauth database
-   * Contains: users, api_keys tables
+   * Contains: users table (shared) + pomodoro_* tables (project-local)
    * Same database as panel.wtyczki.ai for centralized auth
    */
   "d1_databases": [

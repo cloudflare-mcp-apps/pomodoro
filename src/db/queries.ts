@@ -446,9 +446,13 @@ export async function getTodayStatus(env: Env, userId: string): Promise<TodaySta
      LIMIT 10`,
   ).bind(userId).all<{ id: string; label: string; planned_pomodoros: number; completed_pomodoros: number }>();
 
+  const tomorrowDate = new Date(`${today}T00:00:00.000Z`);
+  tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
+  const tomorrowIso = `${tomorrowDate.toISOString().slice(0, 10)}T00:00:00.000Z`;
   const distractionsRes = await env.DB.prepare(
-    `SELECT COUNT(*) AS n FROM pomodoro_distractions WHERE user_id = ? AND logged_at >= ?`,
-  ).bind(userId, `${today}T00:00:00.000Z`).first<{ n: number }>();
+    `SELECT COUNT(*) AS n FROM pomodoro_distractions
+       WHERE user_id = ? AND logged_at >= ? AND logged_at < ?`,
+  ).bind(userId, `${today}T00:00:00.000Z`, tomorrowIso).first<{ n: number }>();
 
   return {
     active_session: activeWithTask,

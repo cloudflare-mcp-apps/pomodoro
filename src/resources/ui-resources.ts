@@ -111,36 +111,16 @@ export interface UIResourceDefinition {
 }
 
 /**
- * UI Resources Registry
- *
- * Define your widgets here. Each widget should:
- * 1. Have a unique URI using ui:// scheme
- * 2. Be built by Vite into web/dist/widgets/
- * 3. Be loaded via loadHtml(env.ASSETS, "/widget-name.html")
- *
- * TODO: Replace pomodoro with your actual server ID
- * TODO: Update widget definitions for your use case
+ * UI Resources registry for Pomodoro Focus.
  */
 export const UI_RESOURCES = {
-  /**
-   * Main Widget
-   *
-   * TODO: Replace with your actual widget configuration
-   *
-   * Used by: your_tool_name tool
-   * Data delivery: Via ui/notifications/tool-result postMessage
-   */
   widget: {
-    /** Unique URI identifying this UI resource */
     uri: "ui://pomodoro/widget",
-
-    /** Resource name for registration and logging */
     name: "main_widget",
-
-    /** Human-readable description */
     description:
-      "Interactive widget for Pomodoro Focus. " +
-      "TODO: Replace with a detailed description of what this widget displays and its features.",
+      "Pomodoro Focus dashboard widget: live countdown timer ring for the active session, " +
+      "today's completed-vs-target counter and streak, per-task progress dots, distraction-logging modal, " +
+      "and a start form (task input + 15/25/45/50-min duration toggle).",
 
     /** MIME type indicating this is an MCP App */
     mimeType: UI_MIME_TYPE,

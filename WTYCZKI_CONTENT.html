@@ -1,0 +1,184 @@
+<!-- ========== ZAKŁADKA 1: OPIS ========== -->
+<h3>Pomodoro Focus — Twój trener skupienia w czacie z AI</h3>
+
+<p><strong>Pomodoro Focus</strong> to wtyczka MCP, która zamienia Twoją rozmowę z AI (np. Claude) w pełnoprawny trener pracy w metodzie Pomodoro. Mówisz „zacznij pomodoro na raport" — AI uruchamia sesję, pokazuje odliczający zegar i pilnuje, żebyś realnie skupił się na zadaniu.</p>
+
+<p>Wszystko, co zrobisz, jest <strong>zapisywane na Twoje konto</strong>: ukończone sesje, dzienne podsumowania, passa (streak), rozproszenia. Następnym razem, gdy zapytasz „jak mi szło dzisiaj?", AI pokaże konkretne liczby — nie zgadywanki.</p>
+
+<div class="info-box">
+  <p><strong>ℹ️ Info:</strong> Pomodoro to klasyczna technika pracy autorstwa Francesca Cirilla — 25 minut skupienia, krótka przerwa, powtórka. Twoja AI staje się stoperem, sekretarką i osobistym coachem w jednym.</p>
+</div>
+
+<h4>Co potrafi (narzędzia)</h4>
+
+<ul>
+  <li><strong>Start sesji</strong> — uruchamiasz pomodoro jednym zdaniem („zacznij 25 minut na napisanie oferty"). AI wybiera długość (15 / 25 / 45 / 50 min) i odpala widget z odliczającym zegarem.</li>
+  <li><strong>Zakończenie sesji</strong> — gdy zegar dobiegnie zera (lub powiesz „skończyłem"), AI zamyka sesję, dolicza ją do dzisiejszego wyniku i sugeruje rodzaj przerwy: krótka (5 min) lub długa (15–30 min co czwartą sesję).</li>
+  <li><strong>Zapis rozproszenia</strong> — rzecz, której nie znajdziesz w zwykłym timerze: gdy w trakcie sesji coś Cię rozprasza, mówisz „wpisz: dzwoni telefon" i wracasz do pracy. <strong>Sesja nie zostaje przerwana</strong> — Cirillo nazywa to „regułą inwentaryzacji rozproszeń".</li>
+  <li><strong>Status dnia</strong> — szybki dashboard: ile pomodora ukończonych dzisiaj vs cel, jaka passa, czy jest aktywna sesja, postęp na konkretnym zadaniu.</li>
+  <li><strong>Historia sesji</strong> — przegląd 1–30 dni wstecz: ile sesji ukończonych, ile porzuconych, jakie typy rozproszeń się powtarzają. Podstawa do wyciągania wniosków.</li>
+</ul>
+
+<h4>Gotowe komendy (prompts)</h4>
+
+<ul>
+  <li><strong>/daily-reflection</strong> — wpisujesz tę komendę na koniec dnia, a AI ściąga historię dzisiejszych sesji i zwraca podsumowanie: co udało się zrobić, jakie rozproszenia się powtarzały, <em>jedną</em> konkretną rzecz do poprawy na jutro.</li>
+  <li><strong>/plan-focus-session</strong> — podajesz zadanie („Przygotować prezentację na poniedziałek"), a AI rozbija je na konkretne 25-minutowe pomodora zgodnie z regułą Cirillo (większe niż 7 → dzieli, mniejsze niż 1 → łączy z innym).</li>
+</ul>
+
+<h4>Widget interaktywny</h4>
+
+<p>Wtyczka zawiera <strong>graficzny widget</strong> w czacie: zegar odliczający czas sesji, etykietę zadania, kropki postępu dnia (<code>●●●○○○○○</code>), licznik passy i przycisk do szybkiego logowania rozproszenia bez wychodzenia z czatu.</p>
+
+<hr>
+
+<!-- ========== ZAKŁADKA 2: DZIAŁANIE ========== -->
+<h3>Jak to działa</h3>
+
+<h4>Przepływ w skrócie</h4>
+
+<p><strong>Ty</strong> → mówisz coś po polsku w czacie AI → <strong>AI</strong> (Claude lub ChatGPT) → łączy się z serwerem <strong>Pomodoro Focus</strong> w chmurze Cloudflare → zapisuje sesję w Twojej prywatnej bazie → <strong>widget z zegarem</strong> pojawia się w czacie → Ty pracujesz.</p>
+
+<p>Nie musisz pamiętać żadnych komend ani składni. Mówisz naturalnie, AI tłumaczy to na wywołania narzędzi. Wszystko trzyma się Twojego konta — żadnych haseł do każdej wtyczki z osobna.</p>
+
+<h4>Co widzisz w widgecie</h4>
+
+<ul>
+  <li><strong>Duży zegar MM:SS</strong> w centrum — odliczanie do końca sesji w czasie rzeczywistym (lokalnie, w przeglądarce).</li>
+  <li><strong>Etykieta zadania</strong> — żebyś nie zapomniał, po co siadasz.</li>
+  <li><strong>Postęp dnia</strong> — kropki pokazujące, ile pomodora już za Tobą i ile Ci zostało do dziennego celu.</li>
+  <li><strong>Passa (streak)</strong> — ile dni z rzędu wykonałeś co najmniej jedno pomodoro. Przy 3+ pokazuje się ikona 🔥.</li>
+  <li><strong>Przycisk „zapisz rozproszenie"</strong> — wysuwa formularz, gdzie dopisujesz, co Cię rozproszyło. Sesja toczy się dalej.</li>
+</ul>
+
+<div class="tip-box">
+  <p><strong>💡 Wskazówka:</strong> Widget zapamiętuje stan między odświeżeniami czatu — gdy wrócisz do okna AI, zegar nadal odliczy poprawnie, nawet jeśli zamkniesz i otworzysz rozmowę.</p>
+</div>
+
+<h4>Trzy scenariusze z życia</h4>
+
+<h5>Scenariusz 1 — „Mam coś trudnego do napisania, pomóż mi się skupić"</h5>
+
+<ol>
+  <li>Mówisz: <em>„Zacznij pomodoro na napisanie oferty dla klienta X — 25 minut."</em></li>
+  <li>AI wywołuje <strong>start_pomodoro</strong>, w czacie pojawia się widget z odliczającym zegarem.</li>
+  <li>Pracujesz. W trakcie sesji łapiesz się, że myślisz o czymś innym — mówisz: <em>„Wpisz rozproszenie: muszę odpisać Ani."</em></li>
+  <li>AI dodaje wpis do inwentarza tej sesji, zegar nie pauzuje, wracasz do oferty.</li>
+  <li>Zegar dobiega zera — AI zamyka sesję i mówi: <em>„Ukończono 3/8 dzisiaj. Następnie: krótka przerwa (5 min)."</em></li>
+</ol>
+
+<h5>Scenariusz 2 — „Nie wiem, ile pomodora zająć mi to zadanie"</h5>
+
+<ol>
+  <li>Wpisujesz komendę <strong>/plan-focus-session</strong> i opisujesz zadanie: <em>„Przygotować prezentację na poniedziałkowe spotkanie zarządu."</em></li>
+  <li>AI sprawdza Twój dzisiejszy status (ile pomodora jeszcze możesz dziś zrobić) i rozbija zadanie na listę: <em>„1) Researcher rynku — 2 pomodora, 2) Zarys slajdów — 1 pomodoro, 3) Treść slajdów — 4 pomodora, 4) Korekta — 1 pomodoro."</em></li>
+  <li>Potwierdzasz plan, a AI uruchamia pierwsze pomodoro automatycznie.</li>
+</ol>
+
+<h5>Scenariusz 3 — „Co poszło dziś nie tak?"</h5>
+
+<ol>
+  <li>Na koniec dnia wpisujesz <strong>/daily-reflection</strong>.</li>
+  <li>AI pobiera dzisiejszą historię sesji i pisze podsumowanie: <em>„Ukończyłeś 6/8 pomodora (75% celu). Powtarzający się wzorzec rozproszeń: Slack i powiadomienia z telefonu — wszystkie przed południem. <strong>Jutro:</strong> wycisz Slacka między 9:00 a 12:00."</em></li>
+  <li>Masz konkretną, mierzalną zmianę do wdrożenia — nie ogólnik typu „skup się bardziej".</li>
+</ol>
+
+<hr>
+
+<!-- ========== ZAKŁADKA 3: FAQ ========== -->
+<h3>Najczęstsze pytania</h3>
+
+<div class="faq-item">
+  <h4 class="faq-question">Czy potrzebuję płacić za jakąś subskrypcję, żeby z tego korzystać?</h4>
+  <div class="faq-answer">
+    <p>Nie. Wtyczka Pomodoro Focus jest dostępna dla wszystkich kont wtyczki.ai. Logujesz się raz przez OAuth (jedno kliknięcie), a potem korzystasz w nieograniczony sposób w Claude, ChatGPT lub innym kliencie MCP.</p>
+  </div>
+</div>
+
+<div class="faq-item">
+  <h4 class="faq-question">Czy moje dane (zadania, rozproszenia) są prywatne?</h4>
+  <div class="faq-answer">
+    <p>Tak. Każda sesja jest zapisywana w bazie powiązanej z Twoim kontem — nikt inny ich nie widzi. Serwer działa na infrastrukturze Cloudflare i nie udostępnia danych zewnętrznym podmiotom.</p>
+  </div>
+</div>
+
+<div class="faq-item">
+  <h4 class="faq-question">Z jakimi AI to działa?</h4>
+  <div class="faq-answer">
+    <p>Z każdym klientem AI, który wspiera standard MCP (Model Context Protocol). W praktyce: <strong>Claude</strong> (Anthropic), <strong>ChatGPT</strong> (OpenAI z funkcją MCP Apps) i inne narzędzia z tej grupy. Widget interaktywny działa szczególnie dobrze w Claude i ChatGPT.</p>
+  </div>
+</div>
+
+<div class="faq-item">
+  <h4 class="faq-question">Jakie długości sesji mogę wybrać?</h4>
+  <div class="faq-answer">
+    <p>Cztery długości: <strong>15, 25, 45, 50 minut</strong>. Domyślnie 25 minut (klasyczne pomodoro). Dłuższe (45–50 min) używaj tylko dla bardzo wymagającej pracy koncepcyjnej. Krótsze (15 min) — gdy trzeba szybko coś dopiąć.</p>
+  </div>
+</div>
+
+<div class="faq-item">
+  <h4 class="faq-question">Co jeśli muszę przerwać sesję wcześniej?</h4>
+  <div class="faq-answer">
+    <p>Powiedz po prostu: <em>„Skończyłem"</em> albo <em>„Zamknij sesję"</em>. AI wywoła zakończenie sesji, doliczy ją do dzisiejszego wyniku i zasugeruje przerwę. Jeśli próbujesz zacząć nową sesję podczas trwającej, wtyczka spyta, co zrobić: zamknąć obecną, porzucić ją czy zostawić.</p>
+  </div>
+</div>
+
+<div class="faq-item">
+  <h4 class="faq-question">Czy rozproszenia naprawdę nie przerywają sesji?</h4>
+  <div class="faq-answer">
+    <p>Nie, to celowy mechanizm. Twórca metody, Francesco Cirillo, zaleca <em>inwentaryzację</em> rozproszeń bez przerywania pracy. Gdy mówisz „wpisz rozproszenie", wtyczka tylko zapisuje notatkę do bazy. Zegar płynie dalej, a Ty wracasz do zadania. Wzorce widać dopiero przy refleksji wieczornej.</p>
+  </div>
+</div>
+
+<div class="faq-item">
+  <h4 class="faq-question">Skąd wtyczka wie, na jakim zadaniu pracuję?</h4>
+  <div class="faq-answer">
+    <p>Mówisz to AI normalnie po polsku przy starcie sesji: <em>„Zacznij pomodoro na napisanie raportu kwartalnego."</em> Tekst „napisanie raportu kwartalnego" trafia jako etykieta zadania. Jeśli kontynuujesz pracę nad tym samym zadaniem później, AI może dopiąć kolejne sesje do tej samej etykiety.</p>
+  </div>
+</div>
+
+<div class="faq-item">
+  <h4 class="faq-question">Czy passa (streak) zeruje się, jeśli opuszczę jeden dzień?</h4>
+  <div class="faq-answer">
+    <p>Tak. Passa to liczba kolejnych dni, w których ukończyłeś co najmniej jedno pomodoro. Przy 3 dniach z rzędu pojawia się ikona 🔥 — to mała presja społeczna, która naprawdę pomaga budować nawyk.</p>
+  </div>
+</div>
+
+<hr>
+
+<!-- ========== DODATEK: INSTALACJA ========== -->
+<h3>Jak zainstalować</h3>
+
+<h4>Adres serwera MCP</h4>
+
+<pre><code>https://pomodoro.wtyczki.ai/mcp</code></pre>
+
+<p>Transport: <strong>Streamable HTTP</strong> (zgodny ze specyfikacją MCP z marca 2025).</p>
+
+<h4>Pierwsze połączenie</h4>
+
+<p>Przy pierwszym uruchomieniu klient MCP otworzy okno logowania <strong>OAuth 2.1 (WorkOS AuthKit)</strong>. Logujesz się raz swoim kontem wtyczki.ai — wtyczka nie wymaga żadnych własnych kluczy ani haseł. Token odświeża się automatycznie.</p>
+
+<h4>Wymagania</h4>
+
+<ul>
+  <li>Konto na <strong>wtyczki.ai</strong> (darmowe).</li>
+  <li>Klient MCP, który wspiera Streamable HTTP i widgety MCP Apps (Claude Desktop, ChatGPT z MCP Apps, lub inny zgodny).</li>
+  <li>Brak dodatkowych kluczy API ani zewnętrznych usług.</li>
+</ul>
+
+<div class="tip-box">
+  <p><strong>💡 Wskazówka:</strong> W Claude wystarczy dodać URL serwera w ustawieniach „Connectors / MCP Servers" i kliknąć „Połącz". W ChatGPT proces wygląda podobnie — wystarczy adres serwera.</p>
+</div>
+
+<!-- ========== SEO META ========== -->
+<!--
+SEO TITLE (50–60 znaków, ze spacjami):
+Pomodoro w czacie z AI — sesje, rozproszenia | wtyczki.ai
+
+SEO DESCRIPTION (140–160 znaków, ze spacjami):
+Włącz pomodoro jednym zdaniem do AI. Zegar w czacie, log rozproszeń bez przerywania pracy, passa i wieczorna refleksja. Działa w Claude i ChatGPT.
+
+SŁOWA KLUCZOWE (pomocnicze, do social/OG):
+pomodoro, technika pomodoro, skupienie, produktywność, MCP, Claude, ChatGPT
+-->

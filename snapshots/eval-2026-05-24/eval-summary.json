@@ -1,0 +1,36 @@
+[
+  {
+    "name": "happy — start_pomodoro from NL",
+    "accuracy": 0.3333333333333333,
+    "avgTokens": 2238.6666666666665,
+    "failure": "=== Failed Iteration 1/2 ===\n--- Prompt 1 ---\n[\n  {\n    \"role\": \"user\",\n    \"content\": \"Zacznij pomodoro 25-minutowy na napisanie raportu kwartalnego.\"\n  },\n  {\n    \"role\": \"assistant\",\n    \"content\": [\n      {\n        \"type\": \"tool-call\",\n        \"toolCallId\": \"call_aDu6NjkEB25BjyBwLKbezXMA\",\n        \"toolName\": \"start_pomodoro\",\n        \"input\": {\n          \"task\": \"Napisanie raportu kwartalnego\",\n          \"duration_minutes\": 25,\n          \"session_type\": \"focus\"\n        },\n        \"providerOptions\": {\n          \"openai\": {\n            \"itemId\": \"fc_0822b556256f4fb4006a1366005640819db0977d1a7e8f9e79\"\n          }\n        }\n      }\n    ]\n  },\n  {\n    \"role\": \"tool\",\n    \"content\": [\n      {\n        \"type\": \"tool-result\",\n        \"toolCallId\": \"call_aDu6NjkEB25BjyBwLKbezXMA\",\n        \"toolName\": \"start_pomodoro\",\n        \"output\": {\n          \"type\": \"json\",\n          \"value\": {\n            \"content\": [\n              {\n                \"type\": \"text\",\n                \"text\": \"Error: Active focus session still running (id=1eee171e-4816-4023-b8bd-3c55db209bd6, ends_at=2026-05-24T21:21:32.869Z). Wait for the timer to finish, or call complete_pomodoro with session_id=1eee171e-4816-4023-b8bd-3c55db209bd6 to end it now.\"\n              }\n            ],\n            \"isError\": true\n          }\n        },\n        \"providerOptions\": {\n          \"openai\": {\n            \"itemId\": \"fc_0822b556256f4fb4006a1366005640819db0977d1a7e8f9e79\"\n          }\n        }\n      }\n    ]\n  },\n  {\n    \"role\": \"assistant\",\n    \"content\": [\n      {\n        \"type\": \"text\",\n        \"text\": \"Nie mogę rozpocząć nowego pomodoro, bo już trwa aktywna sesja:\\n\\n- **session_id:** `1eee171e-4816-4023-b8bd-3c55db209bd6`\\n- kończy się o: `2026-05-24T21:21:32.869Z`\\n\\nJeśli chcesz, mogę:\\n1. **zakończyć tę sesję teraz** i od razu zacząć nową na raport kwartalny, albo\\n2. poczekać, aż obecna się skończy.\\n\\nJeśli chcesz od razu zakończyć, napisz tylko: **„Zakończ tę sesję”**.\",\n        \"providerOptions\": {\n          \"openai\": {\n            \"itemId\": \"msg_0822b556256f4fb4006a1366018740819db52658eced139d9e\",\n            \"phase\": \"final_answer\"\n          }\n        }\n      }\n    ]\n  }\n]\n\n=== Failed Iteration 2/2 ===\n--- Prompt 1 ---\n[\n  {\n    \"role\": \"user\",\n    \"content\": \"Zacznij pomodoro 25-minutowy na napisanie raportu kwartalnego.\"\n  },\n  {\n    \"role\": \"assistant\",\n    \"content\": [\n      {\n        \"type\": \"tool-call\",\n        \"toolCallId\": \"call_4yL1vn5kvNRf7F1sdwEE1DYa\",\n        \"toolName\": \"start_pomodoro\",\n        \"input\": {\n          \"task\": \"napisanie raportu kwartalnego\",\n          \"duration_minutes\": 25,\n          \"session_type\": \"focus\"\n        },\n        \"providerOptions\": {\n          \"openai\": {\n            \"itemId\": \"fc_092ad72216f4190c006a1366005fac819cbed3f7272fbd9eda\"\n          }\n        }\n      }\n    ]\n  },\n  {\n    \"role\": \"tool\",\n    \"content\": [\n      {\n        \"type\": \"tool-result\",\n        \"toolCallId\": \"call_4yL1vn5kvNRf7F1sdwEE1DYa\",\n        \"toolName\": \"start_pomodoro\",\n        \"output\": {\n          \"type\": \"json\",\n          \"value\": {\n            \"content\": [\n              {\n                \"type\": \"text\",\n                \"text\": \"Error: Active focus session still running (id=1eee171e-4816-4023-b8bd-3c55db209bd6, ends_at=2026-05-24T21:21:32.869Z). Wait for the timer to finish, or call complete_pomodoro with session_id=1eee171e-4816-4023-b8bd-3c55db209bd6 to end it now.\"\n              }\n            ],\n            \"isError\": true\n          }\n        },\n        \"providerOptions\": {\n          \"openai\": {\n            \"itemId\": \"fc_092ad72216f4190c006a1366005fac819cbed3f7272fbd9eda\"\n          }\n        }\n      }\n    ]\n  },\n  {\n    \"role\": \"assistant\",\n    \"content\": [\n      {\n        \"type\": \"text\",\n        \"text\": \"Masz już aktywną sesję focus.\\n\\nMożesz:\\n- poczekać do końca timera, albo\\n- zakończyć ją teraz, wywołując `complete_pomodoro` dla sesji `1eee171e-4816-4023-b8bd-3c55db209bd6`.\\n\\nJeśli chcesz, mogę od razu zakończyć obecną sesję i wtedy uruchomić nową 25-minutową na raport kwartalny.\",\n        \"providerOptions\": {\n          \"openai\": {\n            \"itemId\": \"msg_092ad72216f4190c006a1366026284819caab0a8f16ef22fc8\",\n            \"phase\": \"final_answer\"\n          }\n        }\n      }\n    ]\n  }\n]",
+    "toolErrors": [
+      "Error: Active focus session still running (id=1eee171e-4816-4023-b8bd-3c55db209bd6, ends_at=2026-05-24T21:21:32.869Z). Wait for the timer to finish, or call complete_pomodoro with session_id=1eee171e-4816-4023-b8bd-3c55db209bd6 to end it now."
+    ]
+  },
+  {
+    "name": "happy — get_today_status no args",
+    "accuracy": 1,
+    "avgTokens": 2113.3333333333335
+  },
+  {
+    "name": "multi-turn — start_pomodoro then log_distraction then complete",
+    "accuracy": 1,
+    "avgTokens": 8259.333333333334
+  },
+  {
+    "name": "disambiguation — today_status vs session_history (days extract)",
+    "accuracy": 1,
+    "avgTokens": 8621.333333333334
+  },
+  {
+    "name": "negative — documentation question (Cirillo framework explainer)",
+    "accuracy": 1,
+    "avgTokens": 1503
+  },
+  {
+    "name": "negative — vague non-actionable musing",
+    "accuracy": 1,
+    "avgTokens": 1176.6666666666667
+  }
+]

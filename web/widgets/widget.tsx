@@ -119,6 +119,7 @@ function DistractionModal({ open, onClose, onSubmit }: DistractionModalProps) {
             type="text"
             maxLength={200}
             placeholder="Zapisz myśl (max 200 znaków)…"
+            aria-label="Opis rozproszenia"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className="w-full h-11 px-3 rounded border bg-background text-foreground"
@@ -182,12 +183,10 @@ interface ActiveSessionViewProps {
   remainingSecs: number;
   onStop: () => void;
   onLogDistraction: () => void;
-  paused: boolean;
-  onTogglePause: () => void;
 }
 
 function ActiveSessionView({
-  active, totalSeconds, remainingSecs, onStop, onLogDistraction, paused, onTogglePause,
+  active, totalSeconds, remainingSecs, onStop, onLogDistraction,
 }: ActiveSessionViewProps) {
   const label = active.session_type === "focus"
     ? `Skupienie: ${active.task}`
@@ -200,9 +199,6 @@ function ActiveSessionView({
         {label}
       </div>
       <div className="flex gap-2">
-        <Button size="sm" variant="outline" className="h-11 min-w-11" onClick={onTogglePause}>
-          {paused ? "Wznów" : "Pauza"}
-        </Button>
         <Button size="sm" variant="outline" className="h-11 min-w-11" onClick={onLogDistraction}>
           Rozproszenie
         </Button>
@@ -290,9 +286,6 @@ function Widget() {
   const [status, setStatus] = useState<TodayStatus | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
-  const [paused, setPaused] = useState(false);
-  const [pauseAccumMs, setPauseAccumMs] = useState(0);
-  const [pauseStartMs, setPauseStartMs] = useState<number | null>(null);
   const [distractionOpen, setDistractionOpen] = useState(false);
   const [completing, setCompleting] = useState(false);
 
@@ -427,12 +420,12 @@ function Widget() {
 
   const active = status?.active_session ?? null;
 
-  // ──── Local tick (1Hz) — gated on visibility + active session + !paused ────
+  // ──── Local tick (1Hz) — gated on visibility + active session ────
   useEffect(() => {
-    if (!active || !isVisible || !docVisible || paused) return;
+    if (!active || !isVisible || !docVisible) return;
     const id = window.setInterval(() => setNowMs(Date.now()), 1000);
     return () => window.clearInterval(id);
-  }, [active, isVisible, docVisible, paused]);
+  }, [active, isVisible, docVisible]);
 
   // ──── Periodic server resync every 30s (countdown drift safety) ────
   useEffect(() => {
@@ -442,14 +435,13 @@ function Widget() {
   }, [app, active, isVisible, docVisible, refreshStatus]);
 
   // ──── Auto-complete when timer hits zero ────
-  const remainingSecs = useMemo(() => {
-    if (!active) return 0;
-    const adjustedNow = nowMs - pauseAccumMs - (paused && pauseStartMs ? Date.now() - pauseStartMs : 0);
-    return remainingSeconds(active.ends_at, adjustedNow);
-  }, [active, nowMs, pauseAccumMs, paused, pauseStartMs]);
+  const remainingSecs = useMemo(
+    () => (active ? remainingSeconds(active.ends_at, nowMs) : 0),
+    [active, nowMs],
+  );
 
   useEffect(() => {
-    if (!app || !active || completing || paused) return;
+    if (!app || !active || completing) return;
     if (remainingSecs > 0) return;
     setCompleting(true);
     (async () => {
@@ -465,11 +457,9 @@ function Widget() {
       } finally {
         await refreshStatus();
         setCompleting(false);
-        setPauseAccumMs(0);
-        setPauseStartMs(null);
       }
     })();
-  }, [remainingSecs, app, active, completing, paused, refreshStatus]);
+  }, [remainingSecs, app, active, completing, refreshStatus]);
 
   // ──── Actions ────
   const handleStart = useCallback(async (task: string, duration: 15 | 25 | 45 | 50) => {
@@ -503,9 +493,6 @@ function Widget() {
     } catch (e) {
       log.error("stop failed:", e);
     } finally {
-      setPauseAccumMs(0);
-      setPauseStartMs(null);
-      setPaused(false);
       await refreshStatus();
     }
   }, [app, active, refreshStatus]);
@@ -522,19 +509,6 @@ function Widget() {
       log.error("log_distraction failed:", e);
     }
   }, [app, active, refreshStatus]);
-
-  const handleTogglePause = useCallback(() => {
-    setPaused((prev) => {
-      if (prev) {
-        // resuming — accumulate paused time
-        if (pauseStartMs) setPauseAccumMs((acc) => acc + (Date.now() - pauseStartMs));
-        setPauseStartMs(null);
-      } else {
-        setPauseStartMs(Date.now());
-      }
-      return !prev;
-    });
-  }, [pauseStartMs]);
 
   // ──── Render ────
   const safeAreaStyle = {
@@ -589,8 +563,6 @@ function Widget() {
             remainingSecs={remainingSecs}
             onStop={handleStop}
             onLogDistraction={() => setDistractionOpen(true)}
-            paused={paused}
-            onTogglePause={handleTogglePause}
           />
         ) : (
           <div className="w-full max-w-sm">
@@ -610,7 +582,7 @@ function Widget() {
               <li key={t.id} className="flex items-center justify-between text-sm px-2 py-1.5 rounded hover:bg-muted/50">
                 <span className="truncate max-w-[60%]" title={t.label}>{t.label}</span>
                 <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                  {progressDots(Math.max(t.planned_pomodoros, t.completed_pomodoros), t.completed_pomodoros)}
+                  {progressDots(t.planned_pomodoros, t.completed_pomodoros)}
                 </span>
               </li>
             ))}
