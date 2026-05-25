@@ -14,8 +14,8 @@ Source fingerprint: `091da442` · package version: `1.0.0` · refreshed: 2026-05
 
 | Report | Generator | Generated | source@ | Status |
 |--------|-----------|-----------|---------|--------|
-| `snapshot.md` | `/snapshot-server` | 2026-05-19 | `7bd56dc5` | ⚠️ STALE |
-| `description.md` | `/describe-server` | — | `—` | ⬜ MISSING |
+| `snapshot.md` | `/snapshot-server` | 2026-05-25 | `091da442` | ✅ FRESH |
+| `description.md` | `/describe-server` | 2026-05-25 | `091da442` | ✅ FRESH |
 | `design-audit.md` | `/audit-design` | 2026-05-19 | `7bd56dc5` | ⚠️ STALE |
 | `ui-audit.md` | `/improve-ui-with-shadcn` | — | `—` | ⬜ MISSING |
 | `ideas.md` | `/improve` | — | `—` | ⬜ MISSING |

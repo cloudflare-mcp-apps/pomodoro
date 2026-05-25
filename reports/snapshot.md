@@ -1,298 +1,574 @@
 ---
 generator: /snapshot-server
-generated: 2026-05-19
-source_commit: 7bd56dc5
+generated: 2026-05-25
+source_commit: 091da442
 depends_on: []
 ---
 
 # Pomodoro Focus MCP App - Infrastructure Snapshot
 
-**Generated**: 2026-05-19
+**Generated**: 2026-05-25
 **Repository**: pomodoro
 **Status**: Production
-**Architecture**: MCP Apps (SEP-1865) - Stateful D1-Backed Server + Elicitation + Persistent Widget
+**Architecture**: MCP Apps (SEP-1865) - Stateful D1 Session Tracking
 
 ---
 
-## 1. Project Identity
+## 1. Project Identity Metrics
 
-- **Name**: Pomodoro Focus
-- **Slug / Wrangler Name**: `pomodoro`
-- **Description**: Focused-work tracking with per-user sessions, distraction inventory, and LLM-coached daily reflection.
-- **Primary Domain**: https://pomodoro.wtyczki.ai
-- **Server Icon**: ❌ Not configured (`assets/icons/server/` empty dir)
-- **Tool Icons**: ❌ Not configured (`assets/icons/tools/` empty dir; no `_meta.icon` on any tool)
-- **Display-Name Resolution**: ✅ All 5 tools provide `title`
-- **Assets Binding**: ✅ `ASSETS` → `./web/dist/widgets` (`wrangler.jsonc:45-48`)
-- **Build System**: ✅ Vite + viteSingleFile + React 19
-- **UI Resource URI**: `ui://pomodoro/widget`
-- **Two-Part Registration**: ✅ `src/server.ts:217-236` (Resource) + `src/server.ts:239-269` (start_pomodoro tool) + `src/server.ts:326-346` (get_today_status tool with `_meta.ui.resourceUri`)
+| Field | Value |
+|-------|-------|
+| **Human Name** | Pomodoro Focus |
+| **Slug** | `pomodoro` |
+| **Wrangler name** | `pomodoro` |
+| **Server description** | Focused-work tracking with per-user sessions, distraction inventory, and LLM-coached daily reflection |
+| **Primary domain** | `pomodoro.wtyczki.ai` |
+| **Version** | `1.0.0` |
+| **Protocol** | MCP 2024-11-05 / `createMcpHandler` → Streamable HTTP |
+
+### Visual Identity
+
+| Element | Value |
+|---------|-------|
+| **Server icon** | N/A (not declared in server config) |
+| **Tool icon** | N/A |
+| **Display name** | `Pomodoro Focus` (from `SERVER_CONFIG.NAME`) |
+
+### MCP Apps (SEP-1865) Configuration
+
+| Field | Value |
+|-------|-------|
+| **Assets binding** | `ASSETS` |
+| **Assets directory** | `./web/dist/widgets` |
+| **Build system** | Vite + `vite-plugin-singlefile` + `@vitejs/plugin-react` |
+| **UI resource URI** | `ui://pomodoro/widget` |
+| **Widget file** | `web/widgets/widget.html` |
+| **Built output** | `web/dist/widgets/widget.html` |
+| **Two-part registration** | ✅ `registerResource` + `registerTool` with `_meta.ui.resourceUri` |
 
 ---
 
-## 2. Required Functionalities
+## 2. Required Functionalities Status
 
-### 2.1 Dual Authentication
-- **OAuth/JWT Path**: ✅ AuthKit JWKS via `jose` (`src/auth/jwt-verify.ts:23-36`); D1 lookup `users WHERE workos_user_id = ? AND is_deleted = 0` (`src/auth/auth-utils.ts:14-18`).
-- **API Key Path**: ❌ Not implemented — no `src/api-key-handler.ts` (platform-wide JWT-only since 2026-05-18).
-- **Props Extraction**: ✅ `getMcpAuthContext()` → `auth?.props?.{ userId, email }` (`src/server.ts:49-58`).
-- **D1 (mcp-oauth)**: ✅ binding `DB`, ID `eac93639-d58e-4777-82e9-f1e28113d5b2` (`wrangler.jsonc:55-61`); also holds Pomodoro tables (see §7).
-- **OAUTH_KV / USER_SESSIONS**: ❌ Not bound — centralized at `panel.wtyczki.ai`.
+### 2.1 Dual Authentication (WorkOS + API Keys)
 
-### 2.2 Transport (canonical `createMcpHandler`)
-- **`/mcp` Endpoint**: ✅ Streamable HTTP via `createMcpHandler` from `agents/mcp` (`src/index.ts:18`, `src/index.ts:89-91`).
-- **Durable Object**: ❌ Not used (state lives in D1, see §3.1).
-- **Agents SDK**: `agents@^0.11.5`.
-- **Fresh-McpServer-per-request**: ✅ `createServer(env)` invoked inside `handleAuthenticatedMcp` (`src/index.ts:88`); GHSA-345p-7cg4-v4c7 safe.
+| Path | Status | Notes |
+|------|--------|-------|
+| **WorkOS AuthKit JWT** | ✅ Implemented | `src/auth/jwt-verify.ts` — JWKS via `jose`, `issuer` validated, no audience check (per security pattern) |
+| **API Key path** | ❌ Not Implemented | No `src/api-key-handler.ts`; `src/index.ts` has no `wtyk_` key routing — JWT-only |
+| **D1 user lookup** | ✅ Implemented | `src/auth/auth-utils.ts:13` — `SELECT user_id, email, is_deleted FROM users WHERE workos_user_id = ? AND is_deleted = 0` |
+| **OAUTH_KV** | ❌ Not Bound | Not declared in `wrangler.jsonc` |
+| **USER_SESSIONS** | ❌ Not Bound | Not declared |
+
+### 2.2 Transport Protocol
+
+| Field | Value |
+|-------|-------|
+| **Pattern** | `createMcpHandler` (Cloudflare canonical, Apr-2025+) |
+| **Endpoint** | `POST /mcp` |
+| **DO class** | ❌ None — Streamable HTTP; D1 handles session persistence |
+| **WebSocket hibernation** | ❌ Not applicable |
+| **agents SDK version** | `agents@^0.11.5` |
+| **GHSA-345p-7cg4-v4c7** | ✅ Safe — fresh `McpServer` per request via `createServer(env)` |
 
 ### 2.3 Tool Implementation (SDK 1.25+)
-- **MCP SDK**: `@modelcontextprotocol/sdk@^1.29.0`.
-- **`registerTool()`**: ✅ 5 native registrations (`src/server.ts:239,277,306,326,349`).
-- **inputSchema**: ✅ Plain ZodRawShapeCompat (`src/schemas/inputs.ts`); empty `{} as const` for `get_today_status`.
-- **outputSchema**: ✅ Per-tool shapes in `src/schemas/outputs.ts` (5 schemas, all ZodRawShapeCompat).
-- **structuredContent**: ✅ Returned on success via `runTool` helper (`src/server.ts:102-105`).
-- **isError flag**: ✅ Used — `toolError` builds `{ content, isError: true }` (`src/server.ts:66-71`); all tools route through `runTool` and surface failures via this path.
-- **Tool Naming**: ✅ snake_case (`start_pomodoro`, `complete_pomodoro`, `log_distraction`, `get_today_status`, `get_session_history`).
+
+| Check | Status |
+|-------|--------|
+| `registerTool` native SDK | ✅ |
+| `inputSchema` plain object (ZodRawShapeCompat) | ✅ |
+| `outputSchema` declared | ✅ All 5 tools |
+| `structuredContent` returned | ✅ via `runTool` wrapper (`src/server.ts:103-105`) |
+| `isError: true` on errors | ✅ `toolError()` helper (`src/server.ts:66-70`) |
+| Tool descriptions | ✅ 4-part pattern via `getToolDescription()` |
+| Tool naming convention (snake_case) | ✅ |
+| Tool `title` declared | ✅ All 5 tools |
+| `annotations` block | ✅ All 5 tools |
 
 ### 2.4 Tool Descriptions (4-Part Pattern)
-- **`getToolDescription()`** concatenates `part1_purpose + part4_constraints` (`src/tools/descriptions.ts:113-116`) → ≤40 words.
-- **Part 2 (Returns) + Part 3 (Use Case)**: retained in `TOOL_METADATA` as internal documentation only.
-- **Vendor Hiding**: ✅ No vendor/provider names.
-- **Dual-Path Consistency**: N/A — single auth path.
+
+All descriptions follow the 4-part internal structure (`part1_purpose` / `part2_returns` / `part3_useCase` / `part4_constraints`). `getToolDescription()` concatenates only `part1_purpose` + `part4_constraints`. `part2_returns` intentionally dropped (covered by `outputSchema`); `part3_useCase` dropped (covered by `serverInfo.instructions` Usage Patterns). Vendor hiding: ✅ (no external API; all data via D1).
 
 ### 2.5 Centralized Login (panel.wtyczki.ai)
-- **USER_SESSIONS KV**: ❌ Not bound (stateless JWT bearer).
-- **`is_deleted = 0`**: ✅ enforced in D1 lookup (`src/auth/auth-utils.ts:16`).
-- **401 Redirect**: ✅ RFC 9728 `WWW-Authenticate` with `resource_metadata` (`src/well-known.ts:33-39`).
-- **Discovery**: `/.well-known/oauth-protected-resource` (RFC 9728) + `/.well-known/oauth-authorization-server` (RFC 8414) (`src/index.ts:32-37`).
+
+| Check | Status |
+|-------|--------|
+| `USER_SESSIONS` binding | ❌ Not bound |
+| Session cookie flow | ❌ N/A — JWT Bearer token only |
+| `is_deleted` check | ✅ `src/auth/auth-utils.ts:13` — `AND is_deleted = 0` |
+| Redirect flow | ❌ N/A — AuthKit JWT direct |
+| Well-known discovery | ✅ `src/well-known.ts` — RFC 9728 + RFC 8414 |
 
 ### 2.6 Prompts (SDK 1.20+)
-- **Capability**: ✅ `prompts: { listChanged: true }` (`src/server.ts:209`).
-- **Count**: 2.
-- **`registerPrompt()`**: ✅ Individual registration (`src/server.ts:382-409`, `src/server.ts:411-443`).
-- **Zod Validation**: N/A — both prompts use empty `argsSchema: {}`; `plan-focus-session` reads `task_description` ad-hoc from `args`.
-- **Naming**: ✅ kebab-case.
-- **`daily-reflection`** — 0 args; seeds a user-turn telling the LLM to call `get_session_history` then produce wins / distraction patterns / one tweak; ~150 words; PL.
-- **`plan-focus-session`** — reads optional `task_description` arg; seeds Cirillo-rule estimator (split if >7, combine if <1); PL.
+
+| Check | Value |
+|-------|-------|
+| **Capability declared** | ✅ `capabilities: { tools: {}, prompts: {}, resources: {} }` (`src/server.ts:208-211`) |
+| **Count** | 2 |
+| `registerPrompt` | ✅ |
+| Zod `argsSchema` | ⚠️ Partial — `daily-reflection` uses `argsSchema: {}`; `plan-focus-session` reads `task_description` at runtime without formal Zod schema |
+| Naming convention | ✅ kebab-case |
+
+**Registered Prompts:**
+
+| Name | Title (Polish) | Description |
+|------|----------------|-------------|
+| `daily-reflection` | "Refleksja na koniec dnia" | "Wygeneruj podsumowanie dzisiejszych sesji Pomodoro. LLM użytkownika czyta historię sesji (przez get_session_history) i zwraca: co zostało zrobione, powtarzające się rozproszenia, jedną zmianę na jutro." |
+| `plan-focus-session` | "Rozbij zadanie na pomodora" | "Pomóż użytkownikowi oszacować, ile 25-minutowych pomodora potrzebuje dane zadanie. Wymusza regułę Cirillo (podziel jeśli > 7, połącz jeśli < 1)." |
 
 ---
 
-## 3. Optional Functionalities
+## 3. Optional Functionalities Status
 
-- **3.1 Stateful Session**: ✅ Persisted in D1 (not DO) — `pomodoro_sessions`, `pomodoro_tasks`, `pomodoro_daily_stats`, `pomodoro_distractions` (`src/db/queries.ts`). Per-user, auto-completes expired sessions on next `start_pomodoro` (`src/db/queries.ts:165-188`).
-- **3.2 Completions**: ❌ Not Implemented — prompt args use plain string input; tool enums covered by Zod literal unions.
-- **3.3 Workers AI**: ❌ Not configured — host LLM via Prompts.
-- **3.4 Workflows & Async**: ❌ Not Implemented — all queries are sync D1 calls (<100 ms).
-- **3.5 Rate Limiting**: ❌ Not Implemented — no external API budget.
-- **3.6 KV Caching**: ❌ Not Implemented — D1 is the source of truth, no cache layer.
-- **3.7 R2 Storage**: ❌ Not Implemented.
-- **3.8 ResourceLinks**: ❌ Not Implemented.
-- **3.9 Elicitation**: ✅ Form mode for active-session conflict resolution (`src/server.ts:140-199`); 3 oneOf choices (complete/abandon/keep_current); falls back to original error throw on decline/cancel/unsupported. Capability-gated via `supportsFormElicitation()` (`src/helpers/elicitation.ts:32-39`).
-- **3.10 Dynamic Tools**: ❌ Not Implemented.
-- **3.11 Tasks (Experimental)**: ❌ Not Implemented — empty stubs at `src/optional/tasks/*` (SEP-2663 deferred per `OVERRIDES-spec.md`).
-- **3.12 Resources (SEP-1865)**: ✅ `registerResource()` (`src/server.ts:217-236`); URI `ui://pomodoro/widget`; MIME `text/html;profile=mcp-app`; `_meta.ui.csp.resourceDomains:["https://assets.claude.ai","https://persistent.oaistatic.com","https://*.oaistatic.com"]` (cross-platform Claude + ChatGPT fonts); `_meta.ui.domain` = `9ba9ea0ee91c9914cbf9f9513d8f27a8.claudemcpcontent.com`; `prefersBorder: false`; capability `resources: { listChanged: true }` declared (`src/server.ts:209`).
-- **3.13 Sampling**: ❌ Not Implemented — SEP-2577 deprecated; replaced by `/daily-reflection` + `/plan-focus-session` prompts.
+| Feature | Status | Notes |
+|---------|--------|-------|
+| **3.1 Stateful Session** | ✅ Implemented | D1-backed per-user session rows; active-session conflict resolution via elicitation |
+| **3.2 Completions** | ❌ Not Implemented | |
+| **3.3 Workers AI** | ❌ Not Implemented | Binding commented out in `wrangler.jsonc` |
+| **3.4 Workflows & Async** | ❌ Not Implemented | |
+| **3.5 Rate Limiting** | ❌ Not Implemented | |
+| **3.6 KV Caching** | ❌ Not Implemented | JWKS cached isolate-scoped via `jose` module-level var |
+| **3.7 R2 Storage** | ❌ Not Implemented | Binding commented out in `wrangler.jsonc` |
+| **3.8 ResourceLinks** | ❌ Not Implemented | |
+| **3.9 Elicitation** | ✅ Implemented | `src/helpers/elicitation.ts` — form-mode only; active-session conflict in `start_pomodoro` |
+| **3.10 Dynamic Tools** | ❌ Not Implemented | |
+| **3.11 Tasks Protocol** | ❌ Not Adopted | Per-repo decision (SEP-2663 not yet in `agents/mcp`) |
+| **3.12 Resources (SEP-1865)** | ✅ Implemented | See below |
+| **3.13 Sampling** | ❌ Deprecated | SEP-2577 Final; not adopted |
+
+### 3.12 Resources (MCP Apps - SEP-1865)
+
+```typescript
+// src/server.ts:217-235
+server.registerResource(
+  "widget",
+  widgetResource.uri,                // "ui://pomodoro/widget"
+  {
+    mimeType: RESOURCE_MIME_TYPE,    // "text/html;profile=mcp-app"
+    description: widgetResource.description,
+    _meta: { ui: widgetResource._meta.ui! },
+  },
+  async () => {
+    const templateHTML = await loadHtml(env.ASSETS, "/widget.html");
+    return {
+      contents: [{
+        uri: widgetResource.uri,
+        mimeType: RESOURCE_MIME_TYPE,
+        text: templateHTML,
+        _meta: widgetResource._meta as Record<string, unknown>,  // CSP on contents[], not config
+      }],
+    };
+  },
+);
+```
+
+CSP placement: ✅ on `contents[]` entry (correct per spec).
 
 ---
 
-## 4. Tool Inventory
-
-**Total Tools**: 5.
+## 4. Detailed Tool Audit (Tool Inventory)
 
 ### Tool 1: `start_pomodoro`
-- **Title**: Start a Pomodoro session — **Description (27 words)**:
-> "Start a focused Pomodoro session anchored to a task. Rejects if a focus session is already active — call complete_pomodoro first. Allowed durations: 15, 25, 45, 50 min (default 25)."
 
-**Input** (`src/schemas/inputs.ts:16-27`):
+| Field | Value |
+|-------|-------|
+| **Technical name** | `start_pomodoro` |
+| **Display title** | "Start a Pomodoro session" |
+| **Annotations** | `readOnlyHint: false`, `destructiveHint: false`, `idempotentHint: false`, `openWorldHint: false` |
+| **Widget link** | ✅ `_meta: { ui: { resourceUri: "ui://pomodoro/widget" } }` |
+| **Auth parity** | JWT: `src/index.ts:88-91` → `src/server.ts:239-269` |
 
-| Param | Type | Req | Constraints |
-|---|---|---|---|
-| `task` | string | yes | 1–200 chars |
-| `duration_minutes` | 15\|25\|45\|50 | no | literal union; default 25 in handler |
-| `session_type` | enum | no | focus/short_break/long_break; default `focus` |
-| `task_id` | uuid | no | reuse existing task |
+**Description (Verbatim):**
+> Start a focused Pomodoro session anchored to a task. Rejects if a focus session is already active — call complete_pomodoro first. Allowed durations: 15, 25, 45, 50 min (default 25).
 
-**Output** (`src/schemas/outputs.ts:21-32`): session_id, task, task_id, started_at, ends_at, session_type, duration_minutes, today_completed, today_target, current_streak.
-**Auth**: JWT-only. Handler: `src/server.ts:239-269`.
-**Notes**: pre-flight `resolveActiveSessionConflict` elicitation (`src/server.ts:258`); auto-completes expired sessions (`src/db/queries.ts:226-227`); task get-or-create on `(user_id, label)` (`src/db/queries.ts:75-95`).
-**Hints**: readOnly=❌ destructive=❌ idempotent=❌ openWorld=❌ (`src/server.ts:246`). **Prompt**: invoked by `/plan-focus-session`.
+**Input Schema:**
+
+| Parameter | Type | Required | Constraints |
+|-----------|------|----------|-------------|
+| `task` | `string` | ✅ | min 1, max 200 chars |
+| `duration_minutes` | `15 \| 25 \| 45 \| 50` | ❌ | literal union; default 25 in handler |
+| `session_type` | `"focus" \| "short_break" \| "long_break"` | ❌ | default "focus" in handler |
+| `task_id` | `string` (UUID) | ❌ | UUID format |
+
+**Output Schema fields:** `session_id`, `task`, `task_id`, `started_at`, `ends_at`, `session_type`, `duration_minutes`, `today_completed`, `today_target`, `current_streak`
+
+**Implementation Details:** Pre-flight `resolveActiveSessionConflict()` via elicitation (form mode, 3 choices). Auto-completes expired sessions. Task lookup/create via `getOrCreateTask()`. D1 INSERT into `pomodoro_sessions`.
+
+**Output Format:** `content[].text` — Polish result string. `structuredContent` — full schema object.
 
 ---
 
 ### Tool 2: `complete_pomodoro`
-- **Title**: Complete the active Pomodoro — **Description (28 words)**:
-> "Mark a Pomodoro session as completed and roll the streak forward. Idempotent on session_id — calling twice does not double-count. Long break is suggested every 4th completed focus session."
 
-**Input** (`src/schemas/inputs.ts:40-47`): `session_id` (uuid, required), `distractions_count` (int ≥0, optional), `notes` (≤500 chars, optional).
-**Output** (`src/schemas/outputs.ts:38-45`): session_id, today_completed, today_target, current_streak, suggested_next, streak_milestone.
-**Auth**: JWT-only. Handler: `src/server.ts:277-300`.
-**Notes**: atomic D1 batch [UPDATE + UPSERT stats] (`src/db/queries.ts:636-653`); stats anchored on `started_at` date (`src/db/queries.ts:302,592-617`); long break every 4th completed focus (`src/db/queries.ts:325`); no `_meta.ui.resourceUri` (side-effect — widget refreshes via host broadcast, `src/server.ts:272-276`).
-**Hints**: readOnly=❌ destructive=❌ idempotent=✅ openWorld=❌. **Prompt**: widget auto-calls at zero (`widget.tsx:451-472`).
+| Field | Value |
+|-------|-------|
+| **Technical name** | `complete_pomodoro` |
+| **Display title** | "Complete the active Pomodoro" |
+| **Annotations** | `readOnlyHint: false`, `destructiveHint: false`, `idempotentHint: true`, `openWorldHint: false` |
+| **Widget link** | ❌ No `_meta.ui.resourceUri` (intentional — side-effect tool, no widget stack) |
+| **Auth parity** | JWT: `src/index.ts:88-91` → `src/server.ts:277-300` |
+
+**Description (Verbatim):**
+> Mark a Pomodoro session as completed and roll the streak forward. Idempotent on session_id — calling twice does not double-count. Long break is suggested every 4th completed focus session.
+
+**Input Schema:**
+
+| Parameter | Type | Required | Constraints |
+|-----------|------|----------|-------------|
+| `session_id` | UUID | ✅ | UUID format |
+| `distractions_count` | int | ❌ | min 0 |
+| `notes` | string | ❌ | max 500 chars |
+
+**Output Schema fields:** `session_id`, `today_completed`, `today_target`, `current_streak`, `suggested_next`, `streak_milestone`
+
+**Implementation Details:** Atomic D1 batch (`env.DB.batch([updateStmt, recomputeStmt])`). Stats anchor on `started_at` date. Idempotent: re-reads if already completed. Non-focus sessions: single UPDATE (no stats impact).
 
 ---
 
 ### Tool 3: `log_distraction`
-- **Title**: Log a distraction without breaking focus — **Description (31 words)**:
-> "Log a distraction (internal thought or external event) during the active session. Does NOT pause or stop the session — that defeats Cirillo's 'inventory' rule. Description capped at 200 chars; keep it short."
 
-**Input** (`src/schemas/inputs.ts:59-66`): `session_id` (uuid), `type` (internal\|external), `description` (1–200 chars).
-**Output** (`src/schemas/outputs.ts:60-64`): distraction_id, session_distraction_count, parked_items[] (oldest-first).
-**Auth**: JWT-only. Handler: `src/server.ts:306-323`. **Notes**: pre-checks session ownership (`src/db/queries.ts:359-363`); no `_meta.ui.resourceUri`.
-**Hints**: readOnly=❌ destructive=❌ idempotent=❌ openWorld=❌. **Prompt**: none.
+| Field | Value |
+|-------|-------|
+| **Technical name** | `log_distraction` |
+| **Display title** | "Log a distraction without breaking focus" |
+| **Annotations** | `readOnlyHint: false`, `destructiveHint: false`, `idempotentHint: false`, `openWorldHint: false` |
+| **Widget link** | ❌ No `_meta.ui.resourceUri` (intentional — text confirmation only) |
+| **Auth parity** | JWT: `src/index.ts:88-91` → `src/server.ts:303-323` |
+
+**Description (Verbatim):**
+> Log a distraction (internal thought or external event) during the active session. Does NOT pause or stop the session — that defeats Cirillo's 'inventory' rule. Description capped at 200 chars; keep it short.
+
+**Input Schema:**
+
+| Parameter | Type | Required | Constraints |
+|-----------|------|----------|-------------|
+| `session_id` | UUID | ✅ | UUID format |
+| `type` | `"internal" \| "external"` | ✅ | enum |
+| `description` | string | ✅ | min 1, max 200 chars |
+
+**Output Schema fields:** `distraction_id`, `session_distraction_count`, `parked_items` (DistractionRecord[])
+
+**Implementation Details:** Validates session ownership before INSERT. Returns full ordered distraction inventory for the session.
 
 ---
 
 ### Tool 4: `get_today_status`
-- **Title**: Get today's Pomodoro dashboard — **Description (22 words)**:
-> "Get today's Pomodoro dashboard: active session, completed count, streak, and per-task progress. No parameters. UTC-based 'today' in v1.0 — flag if the user's local midnight differs."
 
-**Input**: explicit empty `{} as const` (`src/schemas/inputs.ts:78`).
-**Output** (`src/schemas/outputs.ts:87-94`): active_session (nullable), today_completed, today_target, current_streak, tasks[] (top 10), distractions_today.
-**Auth**: JWT-only. Handler: `src/server.ts:326-346`. **Notes**: 2nd widget-render path (`_meta.ui.resourceUri`, `src/server.ts:334`); tasks joined to sessions for `completed_pomodoros` (`src/db/queries.ts:434-447`).
-**Hints**: readOnly=✅ destructive=❌ idempotent=✅ openWorld=❌. **Prompt**: pulled by `/plan-focus-session` (and indirectly via `/daily-reflection`).
+| Field | Value |
+|-------|-------|
+| **Technical name** | `get_today_status` |
+| **Display title** | "Get today's Pomodoro dashboard" |
+| **Annotations** | `readOnlyHint: true`, `destructiveHint: false`, `idempotentHint: true`, `openWorldHint: false` |
+| **Widget link** | ✅ `_meta: { ui: { resourceUri: "ui://pomodoro/widget" } }` |
+| **Auth parity** | JWT: `src/index.ts:88-91` → `src/server.ts:325-348` |
+
+**Description (Verbatim):**
+> Get today's Pomodoro dashboard: active session, completed count, streak, and per-task progress. No parameters. UTC-based 'today' in v1.0 — flag if the user's local midnight differs.
+
+**Input Schema:** `{}` (no parameters)
+
+**Output Schema fields:** `active_session` (nullable), `today_completed`, `today_target`, `current_streak`, `tasks` (up to 10), `distractions_today`
+
+**Implementation Details:** Widget hydration call. 4 D1 queries: daily_stats, active_session, tasks (top 10 by `created_at DESC`), distraction count for today.
 
 ---
 
 ### Tool 5: `get_session_history`
-- **Title**: List recent Pomodoro sessions — **Description (36 words)**:
-> "List Pomodoro sessions from the last N days (1-30) for pattern analysis. For end-of-day reflection, prefer the `daily-reflection` prompt — it pulls the data automatically and frames the LLM's analysis."
 
-**Input** (`src/schemas/inputs.ts:86-91`): `days` (int 1–30, default 1), `include_distractions` (bool, default true).
-**Output** (`src/schemas/outputs.ts:117-120`): sessions[] (started_at DESC, inline distractions) + totals (focus_minutes, completed_sessions, abandoned_sessions, distraction_count).
-**Auth**: JWT-only. Handler: `src/server.ts:349-374`. **Notes**: batched `WHERE session_id IN (?,?,...)` distractions query (`src/db/queries.ts:518-531`); window cutoff `today - days + 1` at UTC 00:00 (`src/db/queries.ts:496-499`).
-**Hints**: readOnly=✅ destructive=❌ idempotent=✅ openWorld=❌. **Prompt**: invoked by `/daily-reflection` (1 day).
+| Field | Value |
+|-------|-------|
+| **Technical name** | `get_session_history` |
+| **Display title** | "List recent Pomodoro sessions" |
+| **Annotations** | `readOnlyHint: true`, `destructiveHint: false`, `idempotentHint: true`, `openWorldHint: false` |
+| **Widget link** | ❌ No `_meta.ui.resourceUri` (analytical data for LLM summarization) |
+| **Auth parity** | JWT: `src/index.ts:88-91` → `src/server.ts:351-376` |
+
+**Description (Verbatim):**
+> List Pomodoro sessions from the last N days (1-30) for pattern analysis. For end-of-day reflection, prefer the `daily-reflection` prompt — it pulls the data automatically and frames the LLM's analysis.
+
+**Input Schema:**
+
+| Parameter | Type | Required | Constraints |
+|-----------|------|----------|-------------|
+| `days` | int | ❌ | min 1, max 30; default 1 in handler |
+| `include_distractions` | bool | ❌ | default true in handler |
+
+**Output Schema fields:** `sessions` (HistorySession[]), `totals` (focus_minutes, completed_sessions, abandoned_sessions, distraction_count)
+
+**Implementation Details:** 2 D1 calls (sessions LEFT JOIN tasks, distractions IN batch). Dynamic IN placeholder list. Defaults applied in handler.
+
+**Prompt Integration:** Called by `daily-reflection` prompt step 1.
 
 ---
 
-## 5. UX & Frontend Quality
+## 5. UX & Frontend Quality Assessment (6 Pillars)
 
 ### Pillar I: Identity & First Impression
-- Unique server name ✅; server/tool icons ❌ (empty `assets/icons/*` dirs).
-- All 5 tools provide `title` ✅. Descriptions ≤40 words ✅ (22 / 27 / 28 / 31 / 36).
-- Centralized via `src/tools/descriptions.ts`.
+
+- ✅ Server name "Pomodoro Focus" — clear, task-specific
+- ✅ Server instructions present (~230 words, trimmed)
+- ✅ Widget description detailed (timer ring, task progress dots, distraction modal, start form)
+- ❌ No server icon declared
 
 ### Pillar II: Model Control & Quality
-- `server-instructions.ts`: **54 lines / ~406 words / ~530 tokens** — slightly over 500-token target; trim by ~10% if possible (§18.4).
-- Coverage: tool selection rules, slash-command usage, distraction-without-pause rule, 4th-pomodoro long-break rule, PL language directive, UTC caveat.
-- `inputs.ts` fields all have `.meta({ description })` with ranges + examples ✅.
-- Per-tool `outputSchema` ✅.
-- Cross-tool routing in description Part-1 + server-instructions §Usage Patterns ✅.
+
+**Server instructions word count**: ~230 words (within <300 recommendation)
+
+**Coverage sections:**
+- ✅ Capabilities (4 bullet points)
+- ✅ Usage Patterns (5 workflow rules with tool names)
+- ✅ Prompts (2 prompts described with trigger scenarios)
+- ✅ Limits (allowed durations, UTC caveat)
+- ✅ Language directive (`Respond in Polish` + pass-through note)
+- ✅ Notes (auth automatic, widget is the surface)
 
 ### Pillar III: Interactivity & Agency
-- Completions ❌; Elicitation (Form) ✅; Sampling ❌ (deprecated); Prompts ✅ (2); Multi-modal ❌ (text only).
+
+- ✅ Elicitation form for active-session conflict resolution (3 choices, Polish labels)
+- ✅ 2 registered prompts for user-initiated templates
+- ✅ Widget countdown timer, task form, distraction logging modal
+- ✅ `suggested_next` from `complete_pomodoro` drives next-action guidance
+- ✅ `streak_milestone` flag for celebratory UX
 
 ### Pillar IV: Context & Data Management
-- Resource URI predeclared ✅; `_meta.ui.csp.resourceDomains` (Claude + ChatGPT) ✅; `_meta.ui.domain` (Claude sandbox SHA-256) ✅; `_meta.ui.prefersBorder: false` ✅; `_meta.ui.icon` / `priority` / `permissions` ❌.
-- ResourceLinks / subscriptions ❌; Roots ❌ (deprecated SEP-2577).
+
+- ✅ Per-user D1 storage (sessions, tasks, distractions, daily stats)
+- ✅ Streak computation with atomic batch recompute
+- ✅ Task reuse by UUID or label (idempotent creation)
+- ✅ Expired-session auto-completion on next `start_pomodoro`
+- ⚠️ UTC-only "today" boundary — known limitation, documented in instructions
 
 ### Pillar V: Media & Content Handling
-- MIME `text/html;profile=mcp-app` ✅; audio/image/data-URI/audience annotations ❌ N/A.
+
+- ✅ Single-file HTML widget (`vite-plugin-singlefile`)
+- ✅ CSP `resourceDomains`: Claude (`assets.claude.ai`) and ChatGPT (`persistent.oaistatic.com`, `*.oaistatic.com`) CDNs
+- ✅ `connectDomains: []` — correct (all data via MCP protocol, no external fetch)
+- ✅ `prefersBorder: false` (blended widget — recommended)
+- ✅ `domain` set to SHA-256 derived sandbox origin (`9ba9ea0ee91c9914cbf9f9513d8f27a8.claudemcpcontent.com`)
 
 ### Pillar VI: Operations & Transparency
-- `tool_started` + `tool_completed` + `tool_failed` structured logs with `duration_ms` (Date.now delta) (`src/server.ts:85-113`).
-- `transport_request`, `server_error` events emitted (`src/index.ts:74,49`).
-- `isError` flag ✅ — all handler failures route through `toolError()` (`src/server.ts:66-71`).
+
+- ✅ Cloudflare Observability enabled (`wrangler.jsonc`)
+- ✅ Structured JSON logger with typed events and `action_id` correlation
+- ✅ `tool_started`, `tool_completed`, `tool_failed` events
+- ✅ `auth_attempt` logged on JWT failure with reason code
+- ✅ `server_error` logged in fetch handler catch
 
 ---
 
 ## 6. Deployment Status
 
 ### 6.1 Consistency Tests
-- **Command**: `bash scripts/audit/audit-server-patterns.sh pomodoro`
-- **Result**: ✅ "All checks passed! Server matches reference patterns."
+
+`verify-consistency.sh` not found in `scripts/` directory. ❌ N/A — script absent.
 
 ### 6.2 TypeScript Compilation
-- **Command**: `npx tsc --noEmit`
-- **Result**: ✅ Exit code 0 — no errors.
+
+**Command:** `cd projects/pomodoro && npx tsc --noEmit`
+
+**Result:** ✅ CLEAN — exit code 0, no errors, no output.
 
 ### 6.3 Production URL
-- **Primary Domain**: https://pomodoro.wtyczki.ai (`wrangler.jsonc:100-105`, `custom_domain: true`).
-- **`workers_dev`**: ❌ Disabled (`wrangler.jsonc:110`).
+
+| Field | Value |
+|-------|-------|
+| **Primary domain** | `pomodoro.wtyczki.ai` |
+| **workers.dev disabled** | ✅ `"workers_dev": false` |
+| **Custom domain** | ✅ `routes: [{ pattern: "pomodoro.wtyczki.ai", custom_domain: true }]` |
 
 ---
 
 ## 7. Infrastructure Components
 
-- **Cloudflare Assets**: `ASSETS` → `./web/dist/widgets`; build `npm install && npm run build:widgets && npx tsc --noEmit` (`wrangler.jsonc:38-40`).
-- **Durable Objects**: ❌ None (state in D1).
-- **KV Namespaces**: ❌ None bound on this resource server.
-- **D1**: binding `DB`, name `mcp-oauth`, ID `eac93639-d58e-4777-82e9-f1e28113d5b2`. Tables used: shared `users`; per-project `pomodoro_tasks`, `pomodoro_sessions`, `pomodoro_daily_stats`, `pomodoro_distractions` (`migrations/0001_pomodoro_tables.sql`, `migrations/0002_abandoned_at.sql`).
-- **R2 / Workers AI / AI Gateway / Workflows**: ❌ Not configured.
-- **Public Vars**: `AUTHKIT_DOMAIN = "exciting-domain-65.authkit.app"` (`wrangler.jsonc:94`).
-- **Required Secrets (shared)**: ❌ None — `WORKOS_*` MUST NOT be set on resource servers (`lesson_workos_secrets.md`).
-- **Server-Specific Secrets**: ❌ None.
+### Cloudflare Assets (MCP Apps)
+
+| Field | Value |
+|-------|-------|
+| **Binding** | `ASSETS` |
+| **Directory** | `./web/dist/widgets` |
+| **Build command** | `npm install && npm run build:widgets && npx tsc --noEmit` |
+| **Widget source** | `web/widgets/widget.html`, `web/widgets/widget.tsx` |
+| **Built output** | `web/dist/widgets/widget.html` |
+
+### Durable Objects
+
+❌ None — Streamable HTTP via `createMcpHandler`; no DO class.
+
+### KV Namespaces
+
+| Binding | Status |
+|---------|--------|
+| `OAUTH_KV` | ❌ Not bound |
+| `USER_SESSIONS` | ❌ Not bound |
+
+> JWKS caching: isolate-scoped module-level `let jwks = null` in `src/auth/jwt-verify.ts`.
+
+### D1 Database
+
+| Field | Value |
+|-------|-------|
+| **Binding** | `DB` |
+| **Database name** | `mcp-oauth` |
+| **Database ID** | `eac93639-d58e-4777-82e9-f1e28113d5b2` |
+| **Shared tables** | `users` (auth lookup, `is_deleted` check) |
+| **Project tables** | `pomodoro_tasks`, `pomodoro_sessions`, `pomodoro_distractions`, `pomodoro_daily_stats` |
+| **Migrations** | 2 files (`0001_pomodoro_tables.sql`, `0002_abandoned_at.sql`) |
+
+**D1 Table Summary:**
+
+| Table | Primary Key | Key Columns |
+|-------|-------------|-------------|
+| `pomodoro_tasks` | `id` | user_id, label, planned_pomodoros, archived_at |
+| `pomodoro_sessions` | `id` | user_id, task_id, session_type, duration_minutes, started_at, ends_at, completed_at, abandoned_at |
+| `pomodoro_distractions` | `id` | session_id, user_id, type, description, logged_at |
+| `pomodoro_daily_stats` | `(user_id, date)` | completed_count, streak_day |
+
+### R2 Storage
+
+❌ Not implemented (binding commented out in `wrangler.jsonc`).
+
+### Workers AI
+
+❌ Not implemented (binding commented out in `wrangler.jsonc`).
+
+### AI Gateway
+
+❌ Not implemented.
+
+### Workflows
+
+❌ Not implemented.
+
+### Secrets (Wrangler)
+
+| Name | Type | Value |
+|------|------|-------|
+| `AUTHKIT_DOMAIN` | `vars` (not secret — public) | `exciting-domain-65.authkit.app` |
+
+> No per-server WorkOS secrets. Centralized auth — zero `WORKOS_*` per `lesson_workos_secrets.md`.
 
 ---
 
 ## 8. Architecture Patterns
 
-### Authentication Architecture
-- JWT-only (AuthKit bearer). Flow: `POST /mcp` → `verifyJwt` (issuer-bound, JWKS-cached) → `getUserByWorkosId` (D1, `is_deleted = 0`) → `createMcpHandler(server, { authContext: { props } })`.
-- 401 carries RFC 9728 `WWW-Authenticate: Bearer error="unauthorized", resource_metadata="…"`.
+### Authentication Architecture (Single Transport)
+
+```
+Client → POST /mcp  Authorization: Bearer <JWT>
+  → verifyJwt(token, AUTHKIT_DOMAIN)           [src/auth/jwt-verify.ts]
+       → JWKS from https://<authkitDomain>/oauth2/jwks (jose, isolate-cached)
+       → jwtVerify: issuer + expiry; extracts sub (workosUserId)
+  → getUserByWorkosId(DB, workosUserId)          [src/auth/auth-utils.ts]
+       → SELECT user_id, email, is_deleted FROM users WHERE workos_user_id = ? AND is_deleted = 0
+  → createServer(env) + createMcpHandler(server, { authContext: { props: { userId, email } } })
+  → tools: getMcpAuthContext().props.userId
+```
+
+JWT-only. No API key path.
 
 ### Caching Strategy
-- No server-layer cache (per-request fresh `McpServer`). JWKS implicitly cached by `jose.createRemoteJWKSet` for isolate lifetime.
+
+| Layer | Strategy |
+|-------|----------|
+| JWKS | Isolate-scope lazy-init (module-level `let jwks = null`) |
+| Session data | No cache — D1 reads fresh per call |
+| Daily stats | Write-through: atomic recompute on `complete_pomodoro` |
 
 ### Concurrency Control
-- Single active session per user enforced via `getActiveSession` precheck + `WHERE completed_at IS NULL AND abandoned_at IS NULL` clauses (`src/db/queries.ts:127-135`, `:316`).
+
+- D1 batch transactions (`env.DB.batch(...)`) for atomic session close + stats recompute.
+- Active session guard in `startSession()` (`getActiveSession()` before INSERT).
+- Elicitation-based conflict resolution: user prompt before state mutation.
 
 ### Storage Architecture
-- D1 normalized 4-table schema: tasks (1:N) sessions (1:N) distractions; daily_stats is a write-through projection rebuilt atomically by D1 batch on each focus completion (`src/db/queries.ts:629-653`).
+
+All per-user state in shared D1 (`mcp-oauth`). No KV, R2, or DO. UTC-anchored daily stats keyed on `(user_id, date)` with `started_at` as stats anchor column.
 
 ---
 
 ## 9. Code Quality
 
 ### Type Safety
-- TS strict ✅; Zod 4 via `zod/v4` subpath ✅; widget mirrors output types via `web/lib/types.ts`.
-- D1 row interfaces (`SessionRow`, `TaskRow`, `DistractionRow`) exported from `db/queries.ts`.
+
+| Check | Status |
+|-------|--------|
+| `import * as z from "zod/v4"` | ✅ |
+| ZodRawShapeCompat (plain objects, no `.shape`) | ✅ |
+| `.meta({ description })` not `.describe()` | ✅ |
+| No `.default()` in schemas | ✅ — defaults in handler code |
+| Typed params cast (`as TypedParams`) | ✅ all tools |
+| TypeScript compilation | ✅ Clean |
 
 ### Error Handling
-- D1 user lookup wraps `try/catch` returning `null` (`src/auth/auth-utils.ts:14-23`).
-- JWT verify wraps `try/catch` returning `null` on any failure (`src/auth/jwt-verify.ts:27-35`) — see §18.3.
-- Tool wrapper `runTool` converts thrown errors to `{ content, isError: true }` (`src/server.ts:106-114`).
-- Elicitation transport error → `unsupported` fallback (`src/helpers/elicitation.ts:60-65`).
-- Top-level fetch catch logs `server_error` + JSON 500 (`src/index.ts:48-54`).
-- Active-session conflict: per-action message via `ACTIVE_SESSION_ERROR_HINT` (`src/server.ts:129-131`).
+
+| Scenario | Handling |
+|----------|----------|
+| Active session conflict | Elicitation → 3 choices → DB mutation or descriptive `Error` |
+| Session not found | `throw new Error("Session not found: ${id}")` |
+| Session already abandoned | `throw new Error("Session already abandoned: ${id}")` |
+| Task not found | `throw new Error("Task not found: ${id}")` |
+| JWT verification failure | `null` → 401 `unauthorizedResponse` |
+| D1 user not found / deleted | `null` → 401 |
+| Tool errors | `toolError()` → `{ content: [{ type: "text", text: "Error: ..." }], isError: true }` |
+| Unauthenticated request | `throw new Error("Unauthenticated request — userId missing")` |
+| Cross-user distraction write | Session ownership check before INSERT |
 
 ### Observability
-- Cloudflare Observability enabled (`wrangler.jsonc:115-117`).
-- Log events: `transport_request`, `tool_started`, `tool_completed` (with `user_id`, `user_email`, `action_id`, `duration_ms`), `tool_failed`, `server_error`.
-- `auth_attempt` type declared in `shared/logger.ts:78-84` but ✅ NOT emitted on JWT failure (§18.3).
+
+| Check | Status |
+|-------|--------|
+| Cloudflare Observability flag | ✅ `"observability": { "enabled": true }` |
+| Structured JSON logging | ✅ `JSON.stringify` in `shared/logger.ts` |
+| `tool_started` / `tool_completed` / `tool_failed` | ✅ with `action_id` correlation |
+| `auth_attempt` failure logging | ✅ with `reason` field |
+| `server_error` logging | ✅ in fetch handler catch |
 
 ---
 
 ## 10. Technical Specifications
 
 ### Performance
-- D1 query latency: ~5–30 ms per call (user-scoped indexes); whole tool call <100 ms typical.
-- JWT verify: ~10–50 ms (JWKS cached after first call).
-- Widget polling: 30 s server resync + 1 Hz local tick (gated on visibility).
-- Widget bundle: single-file HTML (Vite + viteSingleFile).
-- Tool response payload: ~1–4 KB; history can grow with `days` × sessions.
 
-### Dependencies — Common
+| Metric | Value |
+|--------|-------|
+| **External API** | None — D1 only |
+| **D1 queries / `get_today_status`** | 4 (daily_stats, active_session, tasks, distractions count) |
+| **D1 queries / `start_pomodoro`** | 3-4 (active_session, task lookup/create, INSERT, read stats) |
+| **D1 queries / `complete_pomodoro`** | 3 (session read, D1 batch [2 stmts], task bump if needed) |
+| **D1 queries / `log_distraction`** | 3 (ownership check, INSERT, SELECT all for session) |
+| **D1 queries / `get_session_history`** | 2 (sessions+tasks JOIN, distractions IN) |
+| **Expected latency** | 50–200ms |
+
+### Dependencies
+
+**Common Across MCP Apps:**
 ```json
 {
   "@modelcontextprotocol/ext-apps": "^1.7.0",
   "@modelcontextprotocol/sdk": "^1.29.0",
   "agents": "^0.11.5",
-  "jose": "^6.1.0",
-  "react": "^19.2.0",
-  "react-dom": "^19.2.0",
   "zod": "^4.1.13"
 }
 ```
 
-### Dependencies — Widget-Specific
+**Widget-Specific:**
 ```json
 {
   "clsx": "^2.1.1",
+  "react": "^19.2.0",
+  "react-dom": "^19.2.0",
   "tailwind-merge": "^3.4.0"
 }
 ```
 
-### Dependencies — Development
+**Authentication:**
+```json
+{
+  "jose": "^6.1.0"
+}
+```
+
+**Development:**
 ```json
 {
   "@cloudflare/workers-types": "^4.20250101.0",
@@ -312,169 +588,248 @@ depends_on: []
 ```
 
 ### SDK Versions
-- MCP SDK `^1.29.0` · ext-apps `^1.7.0` · agents `^0.11.5` · jose `^6.1.0` · zod `^4.1.13` (via `zod/v4`).
-- React `^19.2.0` · Vite `^6.0.6` (skeleton-current uses `^7.3.0`, see §18.2).
+
+| Package | Version |
+|---------|---------|
+| `@modelcontextprotocol/sdk` | `^1.29.0` |
+| `@modelcontextprotocol/ext-apps` | `^1.7.0` |
+| `agents` | `^0.11.5` |
+| `zod` | `^4.1.13` |
+| `wrangler` | `^4.45.3` |
 
 ---
 
 ## 11. Compliance Summary
 
 | Check | Status | Notes |
-|---|---|---|
-| Vendor Hiding | ✅ | No vendor names in descriptions |
-| Dual Auth Parity | N/A | JWT-only by design |
-| 4-Part Descriptions | ✅ | Part1+Part4 concatenated, ≤40 words |
-| Custom Domain | ✅ | pomodoro.wtyczki.ai |
-| Workers.dev Disabled | ✅ | `workers_dev: false` |
-| Consistency Tests | ✅ | audit-server-patterns.sh clean |
-| TypeScript Compilation | ✅ | `tsc --noEmit` exit 0 |
-| Prompts Implemented | ✅ | 2 prompts |
-| Zod Schema Shape | ✅ | Plain object (ZodRawShapeCompat) |
-| Tool Naming | ✅ | snake_case (spec-compliant) |
-| Error Handling | ✅ | `isError: true` + structured `tool_failed` log |
-| Color-scheme Meta | ✅ | `web/widgets/widget.html:6` |
-| Cross-env Build | ✅ | `cross-env INPUT=…` |
-| Fresh-McpServer Pattern | ✅ | `createServer(env)` per request |
-| `_meta.ui.resourceUri` (v0.4.0+) | ✅ | nested form on start + status tools |
-| Sampling Removed (SEP-2577) | ✅ | No `createMessage` in source |
-| Widget `h-[500px]` + `sendSizeChanged` | ✅ | `widget.tsx:571`, `widget.tsx:378` |
-| `applyHostStyleVariables` + `applyHostFonts` | ✅ | `widget.tsx:359-360` |
-| `server-instructions.ts` ≤500 tokens | ⚠️ | ~530 tokens — trim (§18.4) |
-| JWT `audience` claim validation | N/A | Intentionally not asserted (security-patterns.md §2) |
-| Structured `auth_attempt` log on failure | ❌ | Bare `catch {}` swallows reason (§18.3) |
+|-------|--------|-------|
+| Vendor Hiding | ✅ | No external API; no service names in descriptions |
+| Dual Auth Parity | ⚠️ | JWT-only (no API key path) |
+| 4-Part Descriptions | ✅ | Full structure in `src/tools/descriptions.ts`; `getToolDescription()` emits purpose + constraints |
+| Custom Domain | ✅ | `pomodoro.wtyczki.ai` |
+| workers.dev Disabled | ✅ | `"workers_dev": false` |
+| Consistency Tests | ❌ | `verify-consistency.sh` not present |
+| TypeScript Compilation | ✅ | Clean — exit code 0 |
+| Prompts Implemented | ✅ | 2 prompts registered |
+| Zod Schema Shape | ✅ | ZodRawShapeCompat (plain objects, no `.shape`) |
+| Tool Naming (snake_case) | ✅ | All 5 tools |
+| Error Handling | ✅ | `toolError()` + `isError: true` |
+| Color-scheme Meta | ⚠️ | Not verified (widget.html not fully inspected) |
+| Cross-env Build | ✅ | `cross-env` in all `build:widget*` scripts |
 
 ---
 
 ## 12. Unique Architectural Features
 
-### Elicitation-Driven Conflict Resolution
-- `start_pomodoro` runs an inline `oneOf` elicitation when an active session exists, with 3 explicit choices (`src/server.ts:140-199`).
-- Capability-gated; declines fall back to the same error the LLM would have seen, so the agent recovery path stays valid.
+### Feature 1: Elicitation-Based Active Session Conflict Resolution
 
-### Atomic D1 Batch for Stats Write-Through
-- Completion + daily_stats recompute share one D1 `batch([UPDATE, UPSERT])` transaction (`src/db/queries.ts:629-653`); rolls back together if either fails — no risk of closed session with stale stats.
+`start_pomodoro` uses MCP spec §Elicitation Form Mode mid-tool-call. When an active session exists, the server raises a Polish-language form prompt before any DB mutation:
 
-### Started-At Date Anchoring for Streaks
-- Daily_stats key on `substr(started_at, 1, 10)`, not `completed_at` (`src/db/queries.ts:302`, `:592-617`). A 23:51→00:16 session credits the day it began — invariant across midnight, no cron-rollover race.
+```typescript
+// src/server.ts:155-176
+const outcome = await requestElicitation<{ resolution: string }>(
+  server,
+  {
+    message: `Masz aktywną sesję (zostało ${remaining}). Co robimy?`,
+    requestedSchema: {
+      type: "object",
+      properties: {
+        resolution: {
+          type: "string",
+          title: "Co zrobić z aktywną sesją?",
+          oneOf: [
+            { const: "complete_and_start", title: "Zamknij obecną i zacznij nową" },
+            { const: "abandon_and_start",  title: "Porzuć obecną i zacznij nową" },
+            { const: "keep_current",       title: "Zostaw obecną sesję" },
+          ],
+        },
+      },
+      required: ["resolution"],
+    },
+  },
+  { relatedRequestId },
+);
+```
 
-### Persistent Widget State via `window.openai.setWidgetState`
-- Widget snapshots `active_session_id` + `active_ends_at` on `onteardown` and re-reads on connect (`widget.tsx:48-64`, `:363-371`); survives remount even before server resync arrives.
+When elicitation is unsupported, falls back to a descriptive error string the model can act on.
+
+### Feature 2: Stats Anchored to `started_at`
+
+Daily stats use `substr(started_at, 1, 10)` as the anchor — not `completed_at`. A 23:51→00:16 session belongs to its start day, preventing midnight-crossing streak resets. Stats are computed by an UPSERT SQL that derives both `completed_count` and `streak_day` inline from `pomodoro_sessions` in a single pass.
+
+### Feature 3: Atomic D1 Batch for Session Completion
+
+`completeSession()` uses `env.DB.batch([updateStmt, recomputeStmt])` — two statements in one D1 transaction. Either both succeed or both roll back, ensuring no session can be closed with stale stats.
+
+### Feature 4: Selective `_meta.ui.resourceUri` Placement
+
+Only 2 of 5 tools carry `_meta.ui.resourceUri` (`start_pomodoro`, `get_today_status`). The other 3 deliberately omit it to prevent widget stacking when the model chains `complete → start`, and because `log_distraction` and `get_session_history` are text-only or analytical tools.
+
+### Feature 5: Expired Session Auto-Completion
+
+`startSession()` auto-completes any session whose `ends_at` is in the past before inserting the new one. Sets `completed_at = session.ends_at` (not `isoNow()`) to preserve correct daily-stats grouping. No blocking error — single-call recovery for host-closed sessions.
 
 ---
 
 ## 13. Known Issues & Limitations
 
-1. UTC-only "today" — flagged in tool description + server-instructions; users in PL get a daily-boundary mismatch around 00:00–02:00 local.
-2. No tool/server icons; empty `assets/icons/` dirs.
-3. JWT verify uses bare `catch {}` — no structured `auth_attempt` log on failure (§18.3).
-4. `resources: { listChanged: true }` advertised but no list-changed notification is ever emitted.
-5. Widget pause is local-only — server `ends_at` keeps ticking; long pauses cause negative-time flash before auto-complete (§18.5).
-6. `server-instructions.ts` ~530 tokens, slightly over the 500-token target.
-7. No unit/integration tests; manual checklist only.
-8. Skeleton TODO/placeholder strings still present in `types.ts:8`, `ui-resources.ts:121,128,143` (§18.6).
+1. **UTC-only "today" boundary**: daily counts and streaks use UTC midnight; flagged in server instructions. Planned: timezone parameter in v1.1.
+2. **No API key path**: JWT-only authentication; no `wtyk_` fallback.
+3. **No `OAUTH_KV` / `USER_SESSIONS`**: no centralized login panel redirect flow.
+4. **`plan-focus-session` `argsSchema`**: reads `task_description` at runtime without formal Zod schema; field is not validated or rendered in the prompt form UI.
+5. **No rate limiting**: no per-user call rate protection.
+6. **4 D1 calls in `get_today_status`**: no query batching optimization.
+7. **No task archiving UI**: tasks accumulate in the `LIMIT 10` list.
 
 ---
 
 ## 14. Future Roadmap
 
+### Implemented (Latest)
+
+- Elicitation-based active-session conflict resolution (form mode, 3 choices)
+- `abandoned_at` column migration — semantic distinction from completion
+- Atomic D1 batch for `complete_pomodoro` (session + stats recompute)
+- Stats anchor on `started_at` (midnight-crossing robustness)
+- 2 prompts: `daily-reflection`, `plan-focus-session`
+- Selective `_meta.ui.resourceUri` placement (3 tools without widget link)
+
 ### Planned Components
-- Tool/server icons once repo-wide convention emerges.
-- User timezone column on `users` for non-UTC "today" (v1.1).
-- Replace `catch {}` in `verifyJwt` with structured `auth_attempt` log event (per `security-patterns.md` §2).
-- Server-side pause primitive (separate `pause_pomodoro` tool storing `paused_at` + accumulated pause ms).
+
+- Timezone-aware "today" boundary (v1.1)
+- API key authentication path
+- Task archiving UI
+- Rate limiting
 
 ### Planned Use Cases
-- Weekly/monthly aggregates (`get_focus_summary` tool over multi-week window).
-- Distraction-pattern clustering by hour-of-day for the LLM.
-- Per-task `planned_pomodoros` user override (currently auto-bumped only).
+
+- Weekly focus report prompt
+- Distraction pattern analysis
+- Per-task time-to-completion estimates
 
 ---
 
 ## 15. Testing Status
 
-### Unit Tests
-❌ Not implemented.
-
-### Integration Tests
-❌ Not implemented.
-
-### Manual Testing Checklist
-- [x] JWT flow (AuthKit-issued bearer)
-- [x] `start_pomodoro` happy path + auto-complete-on-expired
-- [x] Active-session conflict via elicitation (3 branches)
-- [x] `complete_pomodoro` idempotency (same session_id twice)
-- [x] `log_distraction` does not pause widget timer
-- [x] Widget light + dark themes
-- [ ] Cross-midnight session — stats anchor on start date
-- [ ] Account-deleted user (D1 `is_deleted = 1`)
+- [ ] Unit tests — ❌ Not implemented
+- [ ] Integration tests — ❌ Not implemented
+- [x] TypeScript compilation — ✅ Clean
+- [ ] Manual Testing Checklist:
+  - [ ] Start pomodoro → widget renders countdown timer
+  - [ ] Complete pomodoro → streak increments, `suggested_next` correct
+  - [ ] Log distraction mid-session → count increments, session continues
+  - [ ] Start with active session → elicitation form appears with remaining time
+  - [ ] Elicitation "Zamknij obecną" → old session closed, new started
+  - [ ] Elicitation "Porzuć obecną" → old session abandoned (no stats), new started
+  - [ ] `get_today_status` widget hydration on mount
+  - [ ] `daily-reflection` prompt → calls `get_session_history`, Polish summary
+  - [ ] `plan-focus-session` prompt → calls `get_today_status`, pomodoro breakdown
+  - [ ] JWT expiry → 401 returned
+  - [ ] Deleted user (`is_deleted = 1`) → 401 returned
 
 ---
 
 ## 16. Documentation Status
 
-- README: ❌ Absent (repo `private: true`).
-- `server-instructions.ts`: ⚠️ Complete; slightly over 500-token target.
-- Setup Guide: ❌ Absent.
-- Troubleshooting Guide: ❌ Absent.
-- Deployment Guide: ✅ `docs/DEPLOYMENT_CHECKLIST.md`.
-- Auth Contract: ✅ `docs/PANEL_AUTH_CONTRACT.md`.
-- Server Docs: ✅ `docs/server-docs.md`.
-- Improvement Ideas: ❌ Absent (no `IMPROVEMENT_IDEAS.md`).
-- Audit Report: ✅ `SERVER_AUDIT_REPORT.md` (auto-generated, clean).
+| Document | Status | Notes |
+|----------|--------|-------|
+| README | ❌ Not found | No `README.md` in project root |
+| API docs | ❌ Not found | |
+| Setup guide | ❌ Not found | |
+| Troubleshooting | ❌ Not found | |
+| Deployment | ⚠️ Partial | `wrangler.jsonc` build command inline; no separate guide |
+| Migration SQL | ✅ | 2 migration files with inline rationale comments |
+| Design audit | ✅ | `reports/design-audit.md` |
+| Eval reports | ✅ | `reports/eval/` directory |
 
 ---
 
-## 17. File Structure
+## 17. File Structure (MCP Apps Standard)
 
-### `src/`
+### Source Files (`src/`)
+
 ```
 src/
-├── index.ts                    # Fetch entry + JWT pre-handler + createMcpHandler dispatch
-├── server.ts                   # createServer factory; 5 tools, 1 resource, 2 prompts
-├── server-instructions.ts      # System prompt (~530 tokens)
-├── well-known.ts               # RFC 9728 + RFC 8414 + WWW-Authenticate builder
-├── types.ts                    # Env (ASSETS, DB, AUTHKIT_DOMAIN) + ResponseFormat enum (unused)
-├── auth/{jwt-verify,auth-utils}.ts          # AuthKit JWKS + D1 user lookup
-├── db/queries.ts                            # 4-table D1 layer (sessions/tasks/distractions/stats)
-├── helpers/{assets,elicitation}.ts          # loadHtml + form-mode elicitation helper
-├── resources/ui-resources.ts                # UI_RESOURCES registry + CSP + Claude sandbox domain
-├── schemas/{inputs,outputs}.ts              # ZodRawShapeCompat for 5 tools
-├── shared/{constants,logger}.ts             # SERVER_CONFIG + structured logger
-├── tools/{descriptions,index}.ts            # TOOL_METADATA + getToolDescription
-└── optional/                                # 9 EMPTY 0-byte stubs (delete candidates — completions, elicitation, prompts, resources, tasks, ui)
+├── index.ts                    # Entry: well-known discovery + auth + createMcpHandler dispatch
+├── server.ts                   # McpServer factory: 5 tools, 1 resource, 2 prompts
+├── server-instructions.ts      # SERVER_INSTRUCTIONS (~230 words)
+├── types.ts                    # Env interface (ASSETS, DB, AUTHKIT_DOMAIN)
+├── well-known.ts               # RFC 9728 + RFC 8414 discovery handlers
+├── auth/
+│   ├── auth-utils.ts           # getUserByWorkosId (D1 user lookup + is_deleted check)
+│   └── jwt-verify.ts           # JWKS verification via jose (isolate-cached)
+├── db/
+│   └── queries.ts              # All D1 query functions (sessions, tasks, distractions, stats)
+├── helpers/
+│   ├── assets.ts               # loadHtml() — fetch widget HTML from ASSETS binding
+│   └── elicitation.ts          # requestElicitation() — form-mode elicitation wrapper
+├── resources/
+│   └── ui-resources.ts         # UI_RESOURCES registry, CLAUDE_SANDBOX_DOMAIN, CSP config
+├── schemas/
+│   ├── inputs.ts               # Zod input schemas (ZodRawShapeCompat)
+│   └── outputs.ts              # Zod output schemas (ZodRawShapeCompat)
+├── shared/
+│   ├── constants.ts            # SERVER_CONFIG (name, version)
+│   └── logger.ts               # Structured JSON logger with typed event types
+└── tools/
+    └── descriptions.ts         # TOOL_METADATA, getToolDescription(), ToolName type
 ```
 
-### `web/`
+### Widget Files (`web/widgets/`)
+
 ```
 web/
-├── widgets/{widget.html,widget.tsx}        # color-scheme meta + React widget (timer ring + Chart-less)
-├── components/ui/{button,card,badge}.tsx   # shadcn primitives
-├── lib/{types,utils}.ts                    # mirrored output types + cn helper
-└── styles/globals.css                      # MCP host vars + shadcn HSL vars
+├── tsconfig.json
+├── styles/
+│   └── globals.css
+├── lib/
+│   ├── types.ts
+│   └── utils.ts
+└── widgets/
+    ├── widget.html             # Vite entry point
+    └── widget.tsx              # React widget component
+```
+
+### Build Output (`web/dist/widgets/`)
+
+```
+web/dist/widgets/
+└── widget.html                 # Single-file inlined bundle (viteSingleFile)
 ```
 
 ### Configuration Files
-- `wrangler.jsonc` — ASSETS, D1, AUTHKIT_DOMAIN, pomodoro.wtyczki.ai route.
-- `package.json` — SDK ^1.29.0, ext-apps ^1.7.0, agents ^0.11.5, zod ^4.1.13.
-- `tsconfig.json` — server TS config.
-- `vite.config.ts` — root=`web/`, viteSingleFile, `emptyOutDir: false`.
-- `tailwind.config.js`, `postcss.config.js`.
-- `migrations/000{1,2}_*.sql` — D1 schema + abandoned_at column.
 
-### Common Scripts
+```
+wrangler.jsonc                  # Workers config: bindings, routes, observability
+vite.config.ts                  # Vite: react + viteSingleFile, emptyOutDir: false, root: "web/"
+tsconfig.json
+tailwind.config.js
+postcss.config.js
+package.json
+migrations/
+├── 0001_pomodoro_tables.sql    # Initial schema: 4 tables + indexes
+└── 0002_abandoned_at.sql       # ALTER TABLE: add abandoned_at + index
+```
+
+### Common Scripts (`package.json`)
+
 ```json
 {
-  "dev": "wrangler dev",
-  "dev:widget": "cross-env INPUT=widgets/widget.html vite build --watch",
-  "dev:full": "concurrently \"npm run dev\" \"npm run dev:widget\"",
-  "build:widget": "cross-env INPUT=widgets/widget.html vite build",
-  "build:widgets": "npm run build:widget",
-  "watch": "cross-env INPUT=widgets/widget.html vite build --watch",
-  "deploy": "npm run build:widgets && wrangler deploy",
-  "type-check": "tsc --noEmit",
-  "pre-commit": "npm run type-check && npm run build:widgets",
-  "verify-deploy": "npm ci && npx wrangler deploy --dry-run --outdir /tmp/wrangler-dry-run",
-  "cf-typegen": "wrangler types"
+  "scripts": {
+    "dev": "wrangler dev",
+    "dev:widget": "cross-env INPUT=widgets/widget.html vite build --watch",
+    "dev:full": "concurrently \"npm run dev\" \"npm run dev:widget\"",
+    "build:widget": "cross-env INPUT=widgets/widget.html vite build",
+    "build:widgets": "npm run build:widget",
+    "watch": "cross-env INPUT=widgets/widget.html vite build --watch",
+    "watch:widgets": "npm run watch",
+    "deploy": "npm run build:widgets && wrangler deploy",
+    "type-check": "tsc --noEmit",
+    "pre-commit": "npm run type-check && npm run build:widgets",
+    "verify-all": "npm run pre-commit",
+    "verify-deploy": "npm ci && npx wrangler deploy --dry-run --outdir /tmp/wrangler-dry-run",
+    "cf-typegen": "wrangler types"
+  }
 }
 ```
 
@@ -484,122 +839,180 @@ web/
 
 ---
 
-## Appendix A: Two-Part Registration Snippet
+## Appendix A: MCP Apps (SEP-1865) Quick Reference
 
-**Part 1 — Register Resource** (`src/server.ts:217-236`):
+### Two-Part Registration Pattern
+
+**Part 1 — Resource (UI content):**
 ```typescript
+// src/server.ts:217-235
 server.registerResource(
   "widget",
-  widgetResource.uri,                      // "ui://pomodoro/widget"
+  "ui://pomodoro/widget",
   {
-    mimeType: RESOURCE_MIME_TYPE,
+    mimeType: RESOURCE_MIME_TYPE,   // "text/html;profile=mcp-app"
     description: widgetResource.description,
     _meta: { ui: widgetResource._meta.ui! },
   },
   async () => {
     const templateHTML = await loadHtml(env.ASSETS, "/widget.html");
-    return { contents: [{
-      uri: widgetResource.uri,
-      mimeType: RESOURCE_MIME_TYPE,
-      text: templateHTML,
-      _meta: widgetResource._meta as Record<string, unknown>,
-    }] };
+    return {
+      contents: [{
+        uri: "ui://pomodoro/widget",
+        mimeType: RESOURCE_MIME_TYPE,
+        text: templateHTML,
+        _meta: widgetResource._meta as Record<string, unknown>,  // CSP here, not on config
+      }],
+    };
   },
 );
 ```
 
-**Part 2 — Register Tool** (`src/server.ts:239-269`, abbreviated):
+**Part 2 — Tool with `_meta` linkage (selective — 2 of 5 tools):**
 ```typescript
-server.registerTool("start_pomodoro", {
-  title: TOOL_METADATA.start_pomodoro.title,
-  description: getToolDescription("start_pomodoro"),
-  inputSchema: StartPomodoroInput,
-  outputSchema: StartPomodoroOutput,
-  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
-  _meta: { ui: { resourceUri: widgetResource.uri } },   // nested v0.4.0+
-}, async (rawParams, extra) => { /* ... runTool wrapper + elicitation pre-flight */ });
+// start_pomodoro + get_today_status only
+server.registerTool(
+  "start_pomodoro",
+  {
+    // ...
+    _meta: { ui: { resourceUri: "ui://pomodoro/widget" } },
+  },
+  handler,
+);
+// complete_pomodoro, log_distraction, get_session_history — NO _meta.ui.resourceUri
+```
+
+### Widget Build Configuration (`vite.config.ts`)
+
+```typescript
+export default defineConfig({
+  root: "web/",
+  plugins: [react(), viteSingleFile()],
+  build: {
+    rollupOptions: { input: path.resolve(__dirname, "web", INPUT) },
+    outDir: "dist",           // → web/dist/ (relative to root)
+    emptyOutDir: false,       // CRITICAL: multi-widget safety
+  },
+});
 ```
 
 ---
 
-## Appendix B: AnythingLLM Configuration
+## Appendix B: AnythingLLM Configuration Example
 
 ```json
 {
   "mcpServers": {
     "pomodoro": {
+      "type": "sse",
       "url": "https://pomodoro.wtyczki.ai/mcp",
-      "transport": "http",
-      "headers": { "Authorization": "Bearer <AUTHKIT_JWT>" }
+      "authorizationToken": "Bearer <WorkOS_AuthKit_JWT>"
     }
   }
 }
 ```
-JWT-only since 2026-05-18. Obtain bearer via OAuth 2.1 flow against `https://exciting-domain-65.authkit.app`.
+
+> Authentication: WorkOS AuthKit Bearer JWT only. No `wtyk_` API key support.
 
 ---
 
-## Appendix C: Architecture Pattern Match
+## Appendix C: Common Architecture Patterns
 
-Hybrid of **Stateful D1-Backed Server** + **Elicitation** + **Persistent Widget**: state lives in 4 user-scoped D1 tables (no DO); widget polls server every 30 s and ticks locally at 1 Hz; elicitation negotiates active-session conflicts inline; 2 prompts seed end-of-day reflection and task-decomposition flows.
+| Pattern | Reference Server | Match |
+|---------|-----------------|-------|
+| Pattern 1: Stateless External API Server | nbp-exchange | ❌ |
+| Pattern 2: Stateful OAuth Token Caching | opensky | ❌ |
+| Pattern 3: Pure Widget Server | quiz | ❌ |
+
+**This server's pattern: Stateful D1 Session Tracking (4th pattern)**
+
+Pomodoro introduces a distinct pattern: all user data is owned and persisted in shared D1, with no external API. Transport is stateless Streamable HTTP (no DO), but business state is fully stateful per-user via D1 rows. Distinguishing features:
+
+- D1 replaces both the "external API" (data source) and the "caching layer"
+- Atomic write-through batching for stats integrity
+- Elicitation for mid-tool user prompting
+- Selective `_meta.ui.resourceUri` (2 of 5 tools render the widget)
+- `abandoned_at` vs `completed_at` semantic distinction per Cirillo technique
 
 ---
 
-## Appendix D: Quick Commands
+## Appendix D: Checklist References
+
+- `features/CHECKLIST_BACKEND.md`
+- `features/CHECKLIST_FRONTEND.md`
+- `features/OPTIONAL_FEATURES.md`
+- `features/SERVER_REQUIREMENTS_CHECKLIST.md`
+- `features/UX_IMPLEMENTATION_CHECKLIST.md`
+
+> Checklist files not verified in project directory.
+
+---
+
+## Appendix E: Quick Commands
 
 ### Development
+
 ```bash
-cd projects/pomodoro
-npm run dev           # wrangler dev (server only)
-npm run dev:widget    # vite --watch on widget.html
-npm run dev:full      # both in parallel
-npm run type-check    # tsc --noEmit
+npm run dev           # wrangler dev
+npm run dev:full      # wrangler dev + vite watch concurrently
+npm run dev:widget    # vite build --watch only
 ```
 
-### Build & Deploy
+### Building & Deployment
+
 ```bash
-npm run build:widgets
-git push              # Workers Builds deploys (per CLAUDE.md rule #1)
+npm run build:widgets          # Build widget.html single-file bundle
+npm run type-check             # tsc --noEmit
+npm run pre-commit             # type-check + build:widgets
+npm run verify-deploy          # Dry-run deploy check
+# Production: git push — Workers Builds handles deploy
 ```
 
-### Secrets
-❌ None. `AUTHKIT_DOMAIN` is a public var. `WORKOS_*` MUST NOT be set here.
+### Secrets Management
 
-### Testing
 ```bash
-bash scripts/audit/audit-server-patterns.sh pomodoro
-cd projects/pomodoro && npx tsc --noEmit
-npm run probe:protocol -- https://pomodoro.wtyczki.ai/mcp <jwt>
+# No per-server secrets needed.
+# AUTHKIT_DOMAIN is a wrangler.jsonc var (public).
+# DB uses shared mcp-oauth D1 (configured in wrangler.jsonc).
+```
+
+### Migrations
+
+```bash
+wrangler d1 migrations apply mcp-oauth --local   # Local dev
+wrangler d1 migrations apply mcp-oauth           # Production
 ```
 
 ---
 
-## 18. Recommendations
+## Appendix F: D1 Schema and Stats Computation
 
-### 18.1 Likely Bugs
-- **[MED]** Widget "pause" is purely cosmetic — `paused` gates the local tick + auto-complete useEffect, but the server's `ends_at` keeps advancing. A 5-minute pause silently consumes 5 min of session time; the next 30 s server resync surfaces a negative remaining (`widget.tsx:431-435,445-449`). Either add a server-side `pause_pomodoro` tool or relabel the button as "ignore countdown" / remove it.
-- **[LOW]** `progressDots` in widget passes `Math.max(planned, completed)` as `planned` (`widget.tsx:613`), masking the case where `completed > planned` — defeats the auto-bump signal from `bumpTaskPlannedIfNeeded` (`src/db/queries.ts:105-121`). Render the raw values.
-- **[LOW]** `getTodayStatus` reads `distractions_today` with `WHERE logged_at >= '${today}T00:00:00.000Z'` (`src/db/queries.ts:449-451`) but never an upper bound — if `logged_at` somehow lands in the future (clock skew on legacy rows) it counts toward today. Add `AND logged_at < '${tomorrow}T00:00:00.000Z'` for safety.
+### Tables
 
-### 18.2 Spec / Convention Drift
-- **[MED]** `helpers/assets.ts:62-98` defines an unused `WidgetConfig` interface + `createUiMeta` helper. `UI_RESOURCES` already builds its own `_meta` — drift between the two is a footgun. Delete the unused exports.
-- **[LOW]** `resources: { listChanged: true }` capability declared (`src/server.ts:209`) but the server never emits `notifications/resources/list_changed`. Either drop the capability or implement the notification path.
-- **[LOW]** `package.json` pins `vite@^6.0.6` while skeleton-canonical is `^7.3.0` (per ads-roi). Bump in next maintenance pass; no breaking changes expected on `viteSingleFile`.
-- **[LOW]** `types.ts:21` ResponseFormat enum is exported but never imported anywhere — dead code from skeleton; delete.
+**`pomodoro_sessions`** — core session rows. State machine:
+- `completed_at IS NOT NULL` → session completed (counts toward daily_stats)
+- `abandoned_at IS NOT NULL` → user explicitly abandoned (no stats credit per Cirillo's rule)
+- Both null → session is currently active
 
-### 18.3 Security & Auth Concerns
-- **[MED]** `verifyJwt` silently swallows all errors via bare `catch {}` (`src/auth/jwt-verify.ts:33-35`). `security-patterns.md` §2 prescribes emitting `logger.warn({ event: 'auth_attempt', method: 'oauth', success: false, reason })`. The `auth_attempt` type is already declared in `shared/logger.ts:78-84` — just wire it up. Without it, expiry / signature / unknown-issuer cases are invisible in `wrangler tail`.
-- **[LOW]** `wrangler.jsonc:52-53` comment "Contains: users, api_keys tables" — `api_keys` table is unused since 2026-05-18 platform-wide. Update the comment to avoid implying API-key auth still exists.
+**`pomodoro_daily_stats`** — denormalized daily aggregate. `(user_id, date)` PK. Recomputed atomically on every `complete_pomodoro`. Streak algorithm:
 
-### 18.4 Performance & Cost
-- **[LOW]** `server-instructions.ts` is ~530 tokens (54 lines / 406 words) — over the 500-token target. Trim "Example queries" block (5 PL lines) or fold "Performance & Limits" into single-sentence form to land under 500.
-- **[LOW]** `getTodayStatus` issues 4 sequential D1 calls (stats, active, optional task-by-id, tasks, distractions count) — could batch via `env.DB.batch()` to cut RTT on the widget mount path (`src/db/queries.ts:413-466`).
+```sql
+INSERT INTO pomodoro_daily_stats (user_id, date, completed_count, streak_day)
+VALUES (
+  ?1, ?2,
+  (SELECT COUNT(*) FROM pomodoro_sessions
+    WHERE user_id = ?1 AND session_type = 'focus'
+      AND completed_at IS NOT NULL
+      AND substr(started_at, 1, 10) = ?2),
+  CASE WHEN (SELECT COUNT(*) ...) > 0
+       THEN COALESCE((SELECT streak_day FROM pomodoro_daily_stats
+                        WHERE user_id = ?1 AND date = ?3), 0) + 1
+       ELSE 0
+  END
+)
+ON CONFLICT(user_id, date) DO UPDATE SET
+  completed_count = excluded.completed_count,
+  streak_day = excluded.streak_day
+```
 
-### 18.5 UX / Frontend
-- **[LOW]** Widget renders "Łączenie…" (`widget.tsx:562`) only until `connect()` resolves; if `connect()` hangs (host issue) there's no timeout / retry signal. Consider a 10 s fallback message.
-- **[LOW]** Distraction modal `<input>` has no `name` / `id` and no `aria-label` (`widget.tsx:118-126`) — screen readers announce nothing. Add `aria-label="Opis rozproszenia"`.
-
-### 18.6 Dead Code / Stale Stubs
-- **[LOW]** Seven 0-byte skeleton stubs under `src/optional/*` (completions/dynamic-enums, elicitation/{forms,url-input}, prompts/{index,workflows}, resources/{index,templates}, tasks/{async-executor,task-store}, ui/component-generator). None are imported. `git rm` to reduce tree noise.
-- **[LOW]** Skeleton placeholders remain in JSDoc / strings: `types.ts:8` ("TODO: Replace pomodoro placeholders"), `ui-resources.ts:121` ("TODO: Replace pomodoro with your actual server ID"), `ui-resources.ts:128` ("TODO: Replace with your actual widget configuration"), `ui-resources.ts:143` ("TODO: Replace with a detailed description"). Replace or remove.
-- **[LOW]** `wrangler.jsonc:9-13` "CUSTOMIZATION CHECKLIST" header is leftover skeleton scaffolding — server is now production. Trim or rephrase.
+Stats anchor: `substr(started_at, 1, 10)` — sessions credit to their start date, not completion date. This makes streaks invariant across midnight crossings.
