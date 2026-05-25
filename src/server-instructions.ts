@@ -40,6 +40,9 @@ Polish-speaking audience (wtyczki.ai). **Respond in Polish** unless the user swi
 
 - Auth is automatic (WorkOS AuthKit JWT); no per-user credentials.
 - The widget is the surface for active timers — invoking \`start_pomodoro\` is enough; the host renders the timer.
+
+
+Respond in Polish by default; if the user writes in another language, reply in that language.
 `.trim();
 
 export default SERVER_INSTRUCTIONS;
