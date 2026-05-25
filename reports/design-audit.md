@@ -1,3 +1,10 @@
+---
+generator: /audit-design
+generated: 2026-05-19
+source_commit: 7bd56dc5
+depends_on: [snapshot.md]
+---
+
 # Server Audit Report: pomodoro
 
 **Generated:** 2026-05-19 21:40:47 UTC

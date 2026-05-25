@@ -1,3 +1,10 @@
+---
+generator: /snapshot-server
+generated: 2026-05-19
+source_commit: 7bd56dc5
+depends_on: []
+---
+
 # Pomodoro Focus MCP App - Infrastructure Snapshot
 
 **Generated**: 2026-05-19
