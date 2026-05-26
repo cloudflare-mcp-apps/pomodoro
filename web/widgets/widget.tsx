@@ -542,61 +542,63 @@ function Widget() {
   const distractionsToday = status?.distractions_today ?? 0;
 
   return (
-    <div ref={rootRef} className="relative h-[500px] flex flex-col p-3 gap-3" style={safeAreaStyle}>
-      {/* Header */}
-      <div className="flex items-center justify-between text-sm">
-        <div className="font-medium">
-          Dzisiaj: {status?.today_completed ?? 0}/{status?.today_target ?? 8} pomodoro
-          {showStreak && <span className="ml-2">🔥 {status!.current_streak}</span>}
-        </div>
-        <div className="text-muted-foreground text-xs">
-          {distractionsToday} {distractionsToday === 1 ? "rozproszenie" : "rozproszeń"} dzisiaj
-        </div>
-      </div>
-
-      {/* Active timer OR start form */}
-      <div className="flex justify-center">
-        {active ? (
-          <ActiveSessionView
-            active={active}
-            totalSeconds={active.duration_minutes * 60}
-            remainingSecs={remainingSecs}
-            onStop={handleStop}
-            onLogDistraction={() => setDistractionOpen(true)}
-          />
-        ) : (
-          <div className="w-full max-w-sm">
-            <StartForm onStart={handleStart} tasks={status?.tasks ?? []} />
+    <div ref={rootRef} className="relative h-[500px] flex flex-col px-6 py-3 gap-3" style={safeAreaStyle}>
+      <div className="w-full max-w-lg mx-auto flex flex-col flex-1 min-h-0 gap-3">
+        {/* Header */}
+        <div className="flex items-center justify-between text-sm">
+          <div className="font-medium">
+            Dzisiaj: {status?.today_completed ?? 0}/{status?.today_target ?? 8} pomodoro
+            {showStreak && <span className="ml-2">🔥 {status!.current_streak}</span>}
           </div>
+          <div className="text-muted-foreground text-xs">
+            {distractionsToday} {distractionsToday === 1 ? "rozproszenie" : "rozproszeń"} dzisiaj
+          </div>
+        </div>
+
+        {/* Active timer OR start form */}
+        <div className="flex justify-center">
+          {active ? (
+            <ActiveSessionView
+              active={active}
+              totalSeconds={active.duration_minutes * 60}
+              remainingSecs={remainingSecs}
+              onStop={handleStop}
+              onLogDistraction={() => setDistractionOpen(true)}
+            />
+          ) : (
+            <div className="w-full max-w-sm">
+              <StartForm onStart={handleStart} tasks={status?.tasks ?? []} />
+            </div>
+          )}
+        </div>
+
+        {/* Task list */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1 px-1">
+            {SERVER_NAME} · zadania
+          </div>
+          {status && status.tasks.length > 0 ? (
+            <ul className="space-y-1">
+              {status.tasks.map((t) => (
+                <li key={t.id} className="flex items-center justify-between text-sm px-2 py-1.5 rounded hover:bg-muted/50">
+                  <span className="truncate max-w-[60%]" title={t.label}>{t.label}</span>
+                  <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                    {progressDots(t.planned_pomodoros, t.completed_pomodoros)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="text-xs text-muted-foreground px-2">
+              Brak zadań — rozpocznij sesję, by stworzyć pierwsze.
+            </div>
+          )}
+        </div>
+
+        {statusError && (
+          <div className="text-xs text-red-500 px-2">{statusError}</div>
         )}
       </div>
-
-      {/* Task list */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1 px-1">
-          {SERVER_NAME} · zadania
-        </div>
-        {status && status.tasks.length > 0 ? (
-          <ul className="space-y-1">
-            {status.tasks.map((t) => (
-              <li key={t.id} className="flex items-center justify-between text-sm px-2 py-1.5 rounded hover:bg-muted/50">
-                <span className="truncate max-w-[60%]" title={t.label}>{t.label}</span>
-                <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                  {progressDots(t.planned_pomodoros, t.completed_pomodoros)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="text-xs text-muted-foreground px-2">
-            Brak zadań — rozpocznij sesję, by stworzyć pierwsze.
-          </div>
-        )}
-      </div>
-
-      {statusError && (
-        <div className="text-xs text-red-500 px-2">{statusError}</div>
-      )}
 
       <DistractionModal
         open={distractionOpen}
