@@ -376,7 +376,9 @@ function Widget() {
         setAppError(e instanceof Error ? e : new Error(String(e)));
       });
 
-    return () => appInstance.close();
+    return () => {
+      void appInstance.close();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
