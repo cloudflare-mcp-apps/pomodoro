@@ -12,6 +12,7 @@ import type {
 } from "../lib/types";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { WtyczkiFooter } from "../components/wtyczki-footer";
 import "../styles/globals.css";
 
 const SERVER_NAME = "Pomodoro Focus";
@@ -607,6 +608,7 @@ function Widget() {
         onClose={() => setDistractionOpen(false)}
         onSubmit={handleLogDistractionSubmit}
       />
+      <WtyczkiFooter app={app} slug="pomodoro" cta="Wtyczka dla Twojego zespołu? Porozmawiajmy" />
     </div>
   );
 }
