@@ -608,7 +608,7 @@ function Widget() {
         onClose={() => setDistractionOpen(false)}
         onSubmit={handleLogDistractionSubmit}
       />
-      <WtyczkiFooter app={app} slug="pomodoro" cta="Wtyczka dla Twojego zespołu? Porozmawiajmy" />
+      <WtyczkiFooter app={app} slug="pomodoro" />
     </div>
   );
 }

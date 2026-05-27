@@ -26,6 +26,9 @@ const CATALOG: CatalogEntry[] = [
   { name: 'Kursy walut NBP', path: '/wtyczki/biznes/kursy-walut-nbp-mcp/', id: 'nbp-exchange' },
 ];
 
+// AUTO-SYNCED-CTA from /wtyczki-catalog.json (ctas[slug], else defaultCta) — run `npm run sync:footer-catalog`. Edit the JSON, not this.
+const FOOTER_CTA = 'Wtyczka dla Twojego zespołu? Porozmawiajmy';
+
 function tagged(path: string, slug: string, medium: 'xsell' | 'b2b' | 'badge'): string {
   return `${SITE}${path}?utm_source=mcp&utm_medium=widget_footer&utm_campaign=${slug}-${medium}`;
 }
@@ -45,7 +48,7 @@ const linkClass =
 export function WtyczkiFooter({
   app,
   slug,
-  cta = 'Wtyczka pod Twój proces? Porozmawiajmy',
+  cta = FOOTER_CTA,
 }: {
   app: App | null;
   slug: string;
