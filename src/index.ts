@@ -16,7 +16,11 @@ import { getUserByWorkosId } from "./auth/auth-utils";
 import { handleProtectedResource, handleAuthorizationServer, buildWWWAuthenticateHeader } from "./well-known";
 import { logger } from "./shared/logger";
 import { createMcpHandler } from "agents/mcp";
+import { applyFreeQuota } from "./auth/free-quota";
 import { createServer } from "./server";
+
+// Worker name — must match the X-MCP-Server / FREE_SERVERS registry key in mcp-oauth.
+const FREE_SERVER_NAME = "pomodoro";
 
 export default {
   async fetch(
@@ -85,10 +89,14 @@ async function handleAuthenticatedMcp(
   const email = dbUser.email ?? '';
 
   // Fresh McpServer per request — wrapped by createMcpHandler (canonical)
+  // Layer-2 per-user daily quota gate (only tools/call consumes a slot).
+  const { block: quotaBlock, request: gatedRequest } = await applyFreeQuota(request, env, FREE_SERVER_NAME, token);
+  if (quotaBlock) return quotaBlock;
+
   const server = createServer(env);
   return createMcpHandler(server, {
-    authContext: { props: { userId, email } }
-  })(request, env, ctx);
+    authContext: { props: { userId, email, token } }
+  })(gatedRequest, env, ctx);
 }
 
 function unauthorizedResponse(baseUrl: string): Response {

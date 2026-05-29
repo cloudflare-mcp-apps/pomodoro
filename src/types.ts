@@ -8,4 +8,5 @@ export interface Env {
   DB: D1Database;
   /** WorkOS AuthKit domain, e.g. "exciting-domain-65.authkit.app". */
   AUTHKIT_DOMAIN: string;
+  OAUTH_BASE_URL: string;
 }
