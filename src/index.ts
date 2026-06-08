@@ -22,6 +22,8 @@ import { createServer } from "./server";
 // Worker name — must match the X-MCP-Server / FREE_SERVERS registry key in mcp-oauth.
 const FREE_SERVER_NAME = "pomodoro";
 
+export { RateLimiterDO } from "./rate-limiter-do";
+
 export default {
   async fetch(
     request: Request,
@@ -79,6 +81,27 @@ async function handleAuthenticatedMcp(
   const jwtResult = await verifyJwt(token, env.AUTHKIT_DOMAIN);
   if (!jwtResult) {
     return unauthorizedResponse(baseUrl);
+  }
+
+  // Per-user request-tempo gate (all methods) — runs BEFORE the D1 lookup it
+  // would otherwise hammer. Keyed by stable WorkOS identity, not IP. Fail-open:
+  // a DO hiccup must not 429 legit users (auth is the real boundary).
+  let withinRate = true;
+  try {
+    const limiter = env.RATE_LIMITER_DO.get(env.RATE_LIMITER_DO.idFromName(jwtResult.workosUserId));
+    withinRate = await limiter.check();
+  } catch (err) {
+    console.warn(JSON.stringify({ event: 'rate_limiter_error', error: String(err) }));
+  }
+  if (!withinRate) {
+    console.log(JSON.stringify({ event: 'rate_limited', sub: jwtResult.workosUserId, path: '/mcp' }));
+    return new Response(JSON.stringify({
+      error: 'Too Many Requests',
+      message: 'Rate limit exceeded. Keep your MCP session open instead of reconnecting; retry after 60 seconds.',
+    }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json', 'Retry-After': '60', 'Access-Control-Allow-Origin': '*' },
+    });
   }
 
   const dbUser = await getUserByWorkosId(env.DB, jwtResult.workosUserId);

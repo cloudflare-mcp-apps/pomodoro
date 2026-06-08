@@ -8,5 +8,8 @@ export interface Env {
   DB: D1Database;
   /** WorkOS AuthKit domain, e.g. "exciting-domain-65.authkit.app". */
   AUTHKIT_DOMAIN: string;
+
+  /** Per-user request-tempo limiter (rate-limiter-do.ts) */
+  RATE_LIMITER_DO: DurableObjectNamespace<import("./rate-limiter-do").RateLimiterDO>;
   OAUTH_BASE_URL: string;
 }
