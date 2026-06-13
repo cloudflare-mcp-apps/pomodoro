@@ -18,6 +18,7 @@ import { logger } from "./shared/logger";
 import { createMcpHandler } from "agents/mcp";
 import { applyFreeQuota } from "./auth/free-quota";
 import { createServer } from "./server";
+import { recordToolUsage } from "./shared/usage";
 
 // Worker name — must match the X-MCP-Server / FREE_SERVERS registry key in mcp-oauth.
 const FREE_SERVER_NAME = "pomodoro";
@@ -115,6 +116,10 @@ async function handleAuthenticatedMcp(
   // Layer-2 per-user daily quota gate (only tools/call consumes a slot).
   const { block: quotaBlock, request: gatedRequest } = await applyFreeQuota(request, env, FREE_SERVER_NAME, token);
   if (quotaBlock) return quotaBlock;
+
+  // Fleet usage analytics → shared `mcp_usage` dataset. Best-effort, non-blocking:
+  // logs one point per tools/call (server, userId, email, tool). See shared/usage.ts.
+  ctx.waitUntil(recordToolUsage(env, gatedRequest, { server: FREE_SERVER_NAME, userId, email }));
 
   const server = createServer(env);
   return createMcpHandler(server, {

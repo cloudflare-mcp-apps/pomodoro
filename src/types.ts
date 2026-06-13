@@ -6,6 +6,14 @@ export interface Env {
   ASSETS: Fetcher;
   /** Shared mcp-oauth D1 — `users` table + project-local `pomodoro_*` tables. */
   DB: D1Database;
+
+  /**
+   * Workers Analytics Engine — fleet-wide usage dataset (`mcp_usage`).
+   * One data point per tools/call: blobs = [server, userId, email, tool].
+   * Optional so local dev / tsc don't require the binding.
+   */
+  USAGE?: AnalyticsEngineDataset;
+
   /** WorkOS AuthKit domain, e.g. "exciting-domain-65.authkit.app". */
   AUTHKIT_DOMAIN: string;
 
