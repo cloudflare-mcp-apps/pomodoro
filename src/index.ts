@@ -44,9 +44,15 @@ export default {
         return handleAuthorizationServer(env.AUTHKIT_DOMAIN);
       }
 
-      // -- MCP Endpoint (POST /mcp) --
-      if (url.pathname === '/mcp' && request.method === 'POST') {
-        return await handleAuthenticatedMcp(request, env, ctx, baseUrl);
+      // -- MCP Endpoint — full Streamable HTTP surface (POST/GET/DELETE/OPTIONS) --
+      if (url.pathname === '/mcp') {
+        // Preflight carries no Authorization header — must bypass auth.
+        if (request.method === 'OPTIONS') {
+          return createMcpHandler(createServer(env), {})(request, env, ctx);
+        }
+        if (request.method === 'POST' || request.method === 'GET' || request.method === 'DELETE') {
+          return await handleAuthenticatedMcp(request, env, ctx, baseUrl);
+        }
       }
 
       // Everything else -> 404
@@ -114,6 +120,16 @@ async function handleAuthenticatedMcp(
 
   // Fresh McpServer per request — wrapped by createMcpHandler (canonical)
   // Layer-2 per-user daily quota gate (only tools/call consumes a slot).
+  // GET (SSE stream) / DELETE (session teardown) carry no JSON-RPC body — skip
+  // the body-reading quota gate (meters tools/call only) and usage logging, and
+  // hand the request straight to the transport. Rebuilding a bodyless GET would
+  // throw ("Request with GET method cannot have body").
+  if (request.method !== 'POST') {
+    return createMcpHandler(createServer(env), {
+      authContext: { props: { userId, email, token } }
+    })(request, env, ctx);
+  }
+
   const { block: quotaBlock, request: gatedRequest } = await applyFreeQuota(request, env, FREE_SERVER_NAME, token);
   if (quotaBlock) return quotaBlock;
 
